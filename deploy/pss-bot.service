@@ -1,0 +1,20 @@
+[Unit]
+Description=Pixel Starships Discord Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Adjust User/WorkingDirectory if you cloned elsewhere.
+User=ubuntu
+WorkingDirectory=/home/ubuntu/BOTTESTE
+EnvironmentFile=/home/ubuntu/BOTTESTE/.env
+ExecStart=/home/ubuntu/BOTTESTE/.venv/bin/python -u bot.py
+Restart=on-failure
+RestartSec=5
+# Basic hardening
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
