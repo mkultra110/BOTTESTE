@@ -7,7 +7,7 @@ from discord.ext import commands
 
 import config
 from pss import PSSApiError
-from pss.formatting import clean_text, num, rarity_icon
+from pss.formatting import clamp, clean_text, num, rarity_icon
 
 
 class Items(commands.Cog):
@@ -43,7 +43,7 @@ class Items(commands.Cog):
         rarity = it.get("Rarity", "Common")
         embed = discord.Embed(
             title=f"{rarity_icon(rarity)} {it.get('ItemDesignName', '?')}",
-            description=clean_text(it.get("ItemDesignDescription")),
+            description=clamp(clean_text(it.get("ItemDesignDescription")), 4096),
             color=config.BOT_COLOR,
         )
         embed.add_field(name="Rarity", value=rarity, inline=True)

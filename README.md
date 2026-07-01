@@ -93,6 +93,20 @@ bash deploy/update.sh
 
 ---
 
+## 🧪 Tests
+
+Pure-logic unit tests (no network) cover the formatting helpers, cache
+indexing and the LiveOps/item parsing:
+
+```bash
+pip install pytest
+pytest -q
+```
+
+CI runs them on Python 3.10–3.12 (`.github/workflows/ci.yml`).
+
+---
+
 ## 🔐 Authenticated features
 
 The public PSS API serves almost everything anonymously. A small set of

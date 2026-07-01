@@ -7,7 +7,7 @@ from discord.ext import commands
 
 import config
 from pss import PSSApiError
-from pss.formatting import clean_text, num, rarity_icon
+from pss.formatting import clamp, clean_text, rarity_icon
 
 
 class Collections(commands.Cog):
@@ -35,7 +35,7 @@ class Collections(commands.Cog):
             names = sorted(c.get("CollectionName", "?") for c in data.collections.values())
             embed = discord.Embed(
                 title=f"🎖️ {len(names)} crew collections",
-                description=", ".join(f"**{n}**" for n in names),
+                description=clamp(", ".join(f"**{n}**" for n in names), 4096),
                 color=config.BOT_COLOR,
             )
             embed.set_footer(text="Use /collection <name> for details.")
@@ -81,7 +81,7 @@ class Collections(commands.Cog):
                 for m in members[:40]
             )
             title = f"👥 Crew ({len(members)})"
-            embed.add_field(name=title, value=listing[:1024], inline=False)
+            embed.add_field(name=title, value=clamp(listing), inline=False)
 
         embed.set_footer(text=f"Collection ID {coll.get('CollectionDesignId', '?')}")
         return embed

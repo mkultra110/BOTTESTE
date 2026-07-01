@@ -80,6 +80,13 @@ def clean_text(raw: str | None) -> str:
     return text.strip()
 
 
+def clamp(text: str, limit: int = 1024) -> str:
+    """Trim text to fit a Discord embed field/description limit, with an ellipsis."""
+    if len(text) <= limit:
+        return text
+    return text[: limit - 1].rstrip() + "…"
+
+
 def num(value: str | int | float | None) -> str:
     """Format a numeric value with thousands separators.
 

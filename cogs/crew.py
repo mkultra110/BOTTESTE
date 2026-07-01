@@ -7,7 +7,7 @@ from discord.ext import commands
 
 import config
 from pss import PSSApiError
-from pss.formatting import ability_name, clean_text, equipment_slots, num, rarity_icon
+from pss.formatting import ability_name, clamp, clean_text, equipment_slots, num, rarity_icon
 
 
 class Crew(commands.Cog):
@@ -47,7 +47,7 @@ class Crew(commands.Cog):
         rarity = c.get("Rarity", "Common")
         embed = discord.Embed(
             title=f"{rarity_icon(rarity)} {c.get('CharacterDesignName', '?')}",
-            description=clean_text(c.get("CharacterDesignDescription")),
+            description=clamp(clean_text(c.get("CharacterDesignDescription")), 4096),
             color=config.BOT_COLOR,
         )
         embed.add_field(name="Rarity", value=rarity, inline=True)
@@ -259,7 +259,7 @@ class Crew(commands.Cog):
         icon = rarity_icon(char.get("Rarity", ""))
         embed = discord.Embed(
             title=f"⚗️ Recipes for {icon} {char['CharacterDesignName']}",
-            description="\n".join(lines[:30]) or "No recipes.",
+            description=clamp("\n".join(lines[:30]) or "No recipes.", 4096),
             color=config.BOT_COLOR,
         )
         if len(lines) > 30:
