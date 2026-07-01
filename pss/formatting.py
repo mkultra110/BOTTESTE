@@ -80,6 +80,25 @@ def clean_text(raw: str | None) -> str:
     return text.strip()
 
 
+_SPARK_CHARS = "▁▂▃▄▅▆▇█"
+
+
+def sparkline(values: list[int | float]) -> str:
+    """Render a list of numbers as a compact Unicode sparkline."""
+    nums = [float(v) for v in values]
+    if not nums:
+        return ""
+    lo, hi = min(nums), max(nums)
+    if hi == lo:
+        return _SPARK_CHARS[0] * len(nums)
+    span = hi - lo
+    out = []
+    for v in nums:
+        idx = int((v - lo) / span * (len(_SPARK_CHARS) - 1))
+        out.append(_SPARK_CHARS[idx])
+    return "".join(out)
+
+
 def clamp(text: str, limit: int = 1024) -> str:
     """Trim text to fit a Discord embed field/description limit, with an ellipsis."""
     if len(text) <= limit:

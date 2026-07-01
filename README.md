@@ -19,7 +19,11 @@ stats & prestige recipes, item lookups and the daily offers.
 | `/crew <name>` | Crew stats, ability, rarity. |
 | `/prestige <crew1> <crew2>` | What two crew members prestige into. |
 | `/prestige-recipes <crew>` | Every recipe that produces a crew. |
-| `/item <name>` | Item details, bonus and market price. |
+| `/item <name>` | Item details, bonus and catalogue price. |
+| `/price <name>` | 30-day market price trend with a sparkline. |
+| `/crew-top <stat>` | Best crew ranked by a chosen stat. |
+| `/collection [name]` | Collection combo bonus and member crew. |
+| `/room <name>` | Ship room stats across its levels. |
 | `/daily` | Today's sale, shop offer, daily reward and news. |
 | `/top-players [count]` | Global player leaderboard *(needs auth — see below)*. |
 | `/help`, `/about`, `/ping` | Meta commands. |
@@ -89,6 +93,14 @@ To update later:
 
 ```bash
 bash deploy/update.sh
+```
+
+### Or run with Docker
+
+```bash
+cp .env.example .env     # add your DISCORD_TOKEN
+docker compose up -d --build
+docker compose logs -f
 ```
 
 ---

@@ -226,6 +226,26 @@ class PSSApi:
             raise
         return [p.attrib for p in root.iter("Prestige")]
 
+    async def price_history(self, item_id: int) -> list[tuple[str, int]]:
+        """Return [(date, average_price), ...] daily points for an item.
+
+        Uses the anonymous HistoryService; returns an empty list for items
+        with no trading history.
+        """
+        root = await self._get(
+            "HistoryService/PriceHistory", {"itemDesignId": item_id}
+        )
+        points: list[tuple[str, int]] = []
+        for h in root.iter("History"):
+            date = h.attrib.get("Date", "")
+            try:
+                value = int(h.attrib.get("Value", 0))
+            except (TypeError, ValueError):
+                continue
+            points.append((date, value))
+        points.sort(key=lambda p: p[0])
+        return points
+
     async def latest_version(self) -> dict[str, str]:
         root = await self._get(
             "SettingService/GetLatestVersion3",

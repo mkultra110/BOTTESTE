@@ -7,7 +7,7 @@ from discord.ext import commands
 
 import config
 from pss import PSSApiError
-from pss.formatting import clamp, clean_text, num, rarity_icon
+from pss.formatting import clamp, clean_text, num, rarity_icon, sparkline
 
 from ._autocomplete import suggest
 
@@ -105,6 +105,60 @@ class Items(commands.Cog):
 
         embed.set_footer(text=f"Item ID {it.get('ItemDesignId', '?')}")
         return embed
+
+    @app_commands.command(name="price", description="30-day market price trend for an item.")
+    @app_commands.describe(name="Item name (or part of it)")
+    @app_commands.autocomplete(name=_item_ac)
+    async def price(self, interaction: discord.Interaction, name: str) -> None:
+        await interaction.response.defer(thinking=True)
+        data = self.bot.data  # type: ignore[attr-defined]
+        api = self.bot.api  # type: ignore[attr-defined]
+        try:
+            await data.ensure_loaded()
+        except PSSApiError as exc:
+            await interaction.followup.send(f"⚠️ Could not load game data: {exc}")
+            return
+
+        it = data.find_item(name)
+        if it is None:
+            await interaction.followup.send(f"No item found matching **{name}**.")
+            return
+
+        try:
+            points = await api.price_history(int(it["ItemDesignId"]))
+        except PSSApiError as exc:
+            await interaction.followup.send(f"⚠️ API error: {exc}")
+            return
+
+        if not points:
+            await interaction.followup.send(
+                f"No trading history for **{it['ItemDesignName']}** "
+                "(it may not be marketable)."
+            )
+            return
+
+        values = [v for _, v in points]
+        latest = values[-1]
+        first = values[0]
+        change = latest - first
+        pct = (change / first * 100) if first else 0
+        arrow = "▲" if change > 0 else "▼" if change < 0 else "—"
+
+        embed = discord.Embed(
+            title=f"{rarity_icon(it.get('Rarity', ''))} {it['ItemDesignName']} — price trend",
+            color=config.BOT_COLOR,
+        )
+        embed.add_field(name="Latest", value=f"**{num(latest)}** 💰", inline=True)
+        embed.add_field(name="30-day range", value=f"{num(min(values))} – {num(max(values))}", inline=True)
+        embed.add_field(name="Avg", value=num(round(sum(values) / len(values))), inline=True)
+        embed.add_field(
+            name=f"Change ({len(values)}d)",
+            value=f"{arrow} {num(abs(change))} ({pct:+.0f}%)",
+            inline=True,
+        )
+        embed.add_field(name="Trend", value=f"`{sparkline(values)}`", inline=False)
+        embed.set_footer(text="Daily average market price • data from the public PSS API")
+        await interaction.followup.send(embed=embed)
 
     def _item_refs(self, raw: str) -> list[str]:
         """Parse a '|'-separated list of 'idxqty' or 'kind:idxqty' item refs."""

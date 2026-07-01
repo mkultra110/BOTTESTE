@@ -81,7 +81,10 @@ class General(commands.Cog):
         )
         embed.add_field(
             name="📦 Items",
-            value="`/item <name>` — item details and market price.",
+            value=(
+                "`/item <name>` — item details and catalogue price.\n"
+                "`/price <name>` — 30-day market price trend."
+            ),
             inline=False,
         )
         embed.add_field(

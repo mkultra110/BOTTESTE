@@ -7,6 +7,7 @@ from pss.formatting import (
     num,
     parse_pss_datetime,
     rarity_icon,
+    sparkline,
 )
 
 
@@ -76,6 +77,15 @@ def test_clamp_truncates_with_ellipsis():
     out = clamp("x" * 2000, 100)
     assert len(out) <= 100
     assert out.endswith("…")
+
+
+def test_sparkline():
+    assert sparkline([]) == ""
+    # flat series -> all lowest block
+    assert sparkline([5, 5, 5]) == "▁▁▁"
+    out = sparkline([1, 2, 3, 4, 5])
+    assert len(out) == 5
+    assert out[0] == "▁" and out[-1] == "█"  # min and max map to ends
 
 
 def test_rarity_icon_has_all_known_rarities():
