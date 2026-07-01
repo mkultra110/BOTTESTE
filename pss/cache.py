@@ -34,6 +34,7 @@ class GameData:
         # A normalized name can map to several designs (e.g. two "Michelle").
         self._char_by_name: dict[str, list[int]] = {}
         self._item_by_name: dict[str, list[int]] = {}
+        self._collection_by_name: dict[str, list[int]] = {}
 
     # -- loading ------------------------------------------------------------
     @property
@@ -66,6 +67,9 @@ class GameData:
 
         self._char_by_name = self._index_by_name(chars, "CharacterDesignName", "CharacterDesignId")
         self._item_by_name = self._index_by_name(items, "ItemDesignName", "ItemDesignId")
+        self._collection_by_name = self._index_by_name(
+            collections, "CollectionName", "CollectionDesignId"
+        )
         self._loaded_at = time.monotonic()
         log.info(
             "Loaded %d crew, %d items, %d rooms, %d collections.",
@@ -104,6 +108,29 @@ class GameData:
         if not c:
             return f"#{coll_id}"
         return c.get("CollectionName") or c.get("CollectionDesignName") or f"#{coll_id}"
+
+    def find_collection(self, query: str) -> dict[str, str] | None:
+        key = _norm(query)
+        if not key:
+            return None
+        if key in self._collection_by_name:
+            return self.collections[self._collection_by_name[key][0]]
+        matches = [cid for name, cids in self._collection_by_name.items() if key in name for cid in cids]
+        if matches:
+            matches.sort(key=lambda cid: len(self.collections[cid].get("CollectionName", "")))
+            return self.collections[matches[0]]
+        return None
+
+    def crew_in_collection(self, coll_id: int | str) -> list[dict[str, str]]:
+        try:
+            cid = int(coll_id)
+        except (TypeError, ValueError):
+            return []
+        return [
+            c for c in self.characters.values()
+            if c.get("CollectionDesignId") not in (None, "", "0")
+            and int(c["CollectionDesignId"]) == cid
+        ]
 
     def find_character(self, query: str) -> dict[str, str] | None:
         """Resolve a crew by exact then fuzzy (substring) name match."""

@@ -104,6 +104,62 @@ class Crew(commands.Cog):
         embed.set_footer(text=f"Crew ID {c.get('CharacterDesignId', '?')}")
         return embed
 
+    STAT_FIELDS = {
+        "HP": "FinalHp",
+        "Attack": "FinalAttack",
+        "Repair": "FinalRepair",
+        "Ability": "SpecialAbilityFinalArgument",
+        "Engine": "FinalEngine",
+        "Weapon": "FinalWeapon",
+        "Science": "FinalScience",
+        "Pilot": "FinalPilot",
+        "Research": "FinalResearch",
+    }
+
+    @app_commands.command(name="crew-top", description="Best crew ranked by a chosen stat.")
+    @app_commands.describe(stat="Which stat to rank by", count="How many to show (1-25, default 10)")
+    @app_commands.choices(
+        stat=[app_commands.Choice(name=k, value=v) for k, v in STAT_FIELDS.items()]
+    )
+    async def crew_top(
+        self,
+        interaction: discord.Interaction,
+        stat: app_commands.Choice[str],
+        count: int = 10,
+    ) -> None:
+        await interaction.response.defer(thinking=True)
+        try:
+            data = await self._data()
+        except PSSApiError as exc:
+            await interaction.followup.send(f"⚠️ Could not load game data: {exc}")
+            return
+
+        count = max(1, min(count, 25))
+        field = stat.value
+
+        def stat_val(c: dict[str, str]) -> float:
+            try:
+                return float(c.get(field, 0) or 0)
+            except (TypeError, ValueError):
+                return 0.0
+
+        ranked = sorted(data.characters.values(), key=stat_val, reverse=True)
+        ranked = [c for c in ranked if stat_val(c) > 0][:count]
+
+        medals = {0: "🥇", 1: "🥈", 2: "🥉"}
+        lines = [
+            f"{medals.get(i, f'`#{i + 1}`')} {rarity_icon(c.get('Rarity', ''))} "
+            f"**{c.get('CharacterDesignName', '?')}** — {num(c.get(field))}"
+            for i, c in enumerate(ranked)
+        ]
+        embed = discord.Embed(
+            title=f"🏅 Top crew by {stat.name}",
+            description="\n".join(lines) or "No data.",
+            color=config.BOT_COLOR,
+        )
+        embed.set_footer(text="Max-level stats • use /crew <name> for full details")
+        await interaction.followup.send(embed=embed)
+
     @app_commands.command(name="prestige", description="What two crew members prestige into.")
     @app_commands.describe(crew1="First crew", crew2="Second crew")
     async def prestige(self, interaction: discord.Interaction, crew1: str, crew2: str) -> None:

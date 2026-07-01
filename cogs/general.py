@@ -68,9 +68,15 @@ class General(commands.Cog):
             name="🧑‍🚀 Crew",
             value=(
                 "`/crew <name>` — crew stats, ability and rarity.\n"
+                "`/crew-top <stat>` — best crew ranked by a stat.\n"
                 "`/prestige <crew1> <crew2>` — what two crew prestige into.\n"
                 "`/prestige-recipes <crew>` — all ways to obtain a crew."
             ),
+            inline=False,
+        )
+        embed.add_field(
+            name="🎖️ Collections",
+            value="`/collection [name]` — combo bonus and member crew (or list all).",
             inline=False,
         )
         embed.add_field(
