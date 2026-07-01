@@ -9,6 +9,8 @@ import config
 from pss import PSSApiError
 from pss.formatting import clamp, clean_text, num
 
+from ._autocomplete import suggest
+
 
 def _fmt_time(seconds: str | None) -> str:
     try:
@@ -30,8 +32,12 @@ class Rooms(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
 
+    async def _room_ac(self, interaction: discord.Interaction, current: str):
+        return await suggest(interaction, current, "suggest_rooms")
+
     @app_commands.command(name="room", description="Look up a ship room's stats across its levels.")
     @app_commands.describe(name="Room name (e.g. 'bridge', 'ion cannon', 'shield')")
+    @app_commands.autocomplete(name=_room_ac)
     async def room(self, interaction: discord.Interaction, name: str) -> None:
         await interaction.response.defer(thinking=True)
         data = self.bot.data  # type: ignore[attr-defined]

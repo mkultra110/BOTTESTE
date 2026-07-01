@@ -92,3 +92,21 @@ def test_char_name_fallback():
 def test_norm():
     assert _norm("Katie-8 'Hammerhead'") == "katie8hammerhead"
     assert _norm("D.R.A.G.O.N") == "dragon"
+
+
+def test_suggest_characters_prefix_and_substring():
+    data = build()
+    # prefix match
+    s = data.suggest_characters("ai")
+    assert "Ai-Ling" in s
+    # substring / dedup: both Michelles share a name -> one entry
+    s2 = data.suggest_characters("michelle")
+    assert s2.count("Michelle") == 1
+    # empty query returns some names, capped at 25
+    assert 0 < len(data.suggest_characters("")) <= 25
+
+
+def test_suggest_collections_and_items():
+    data = build()
+    assert "Cosmic Crusaders" in data.suggest_collections("cosmic")
+    assert "Gas" in data.suggest_items("gas")

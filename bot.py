@@ -40,6 +40,7 @@ class PSSBot(commands.Bot):
         self.data = GameData(self.api, ttl=config.CACHE_TTL_SECONDS)
 
     async def setup_hook(self) -> None:
+        self.tree.on_error = self.on_app_command_error
         await self.api.start()
         try:
             await self.data.ensure_loaded()
@@ -61,6 +62,19 @@ class PSSBot(commands.Bot):
         else:
             synced = await self.tree.sync()
             log.info("Synced %d global commands", len(synced))
+
+    async def on_app_command_error(
+        self, interaction: discord.Interaction, error: Exception
+    ) -> None:
+        log.exception("Unhandled app-command error", exc_info=error)
+        msg = "⚠️ Something went wrong handling that command. Please try again."
+        try:
+            if interaction.response.is_done():
+                await interaction.followup.send(msg, ephemeral=True)
+            else:
+                await interaction.response.send_message(msg, ephemeral=True)
+        except discord.HTTPException:
+            pass
 
     async def on_ready(self) -> None:
         log.info("Logged in as %s (id=%s)", self.user, self.user.id if self.user else "?")

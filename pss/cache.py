@@ -111,6 +111,43 @@ class GameData:
             return f"#{coll_id}"
         return c.get("CollectionName") or c.get("CollectionDesignName") or f"#{coll_id}"
 
+    # -- autocomplete suggestions -------------------------------------------
+    @staticmethod
+    def _suggest(index: dict[str, list[int]], table: dict[int, dict[str, str]],
+                 name_key: str, query: str, limit: int = 25) -> list[str]:
+        key = _norm(query)
+        names: list[str] = []
+        seen: set[str] = set()
+        # Prefix matches first, then substring matches.
+        for want_prefix in (True, False):
+            for norm_name, ids in index.items():
+                if not norm_name:
+                    continue
+                hit = norm_name.startswith(key) if want_prefix else key in norm_name
+                if not hit:
+                    continue
+                for rid in ids:
+                    display = table.get(rid, {}).get(name_key)
+                    if display and display not in seen:
+                        seen.add(display)
+                        names.append(display)
+            if not key:
+                break
+        names.sort(key=len)
+        return names[:limit]
+
+    def suggest_characters(self, query: str) -> list[str]:
+        return self._suggest(self._char_by_name, self.characters, "CharacterDesignName", query)
+
+    def suggest_items(self, query: str) -> list[str]:
+        return self._suggest(self._item_by_name, self.items, "ItemDesignName", query)
+
+    def suggest_collections(self, query: str) -> list[str]:
+        return self._suggest(self._collection_by_name, self.collections, "CollectionName", query)
+
+    def suggest_rooms(self, query: str) -> list[str]:
+        return self._suggest(self._room_by_name, self.rooms, "RoomName", query)
+
     def find_rooms(self, query: str, limit: int = 12) -> list[dict[str, str]]:
         """All room designs whose name contains the query (across levels)."""
         key = _norm(query)

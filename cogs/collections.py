@@ -9,15 +9,21 @@ import config
 from pss import PSSApiError
 from pss.formatting import clamp, clean_text, rarity_icon
 
+from ._autocomplete import suggest
+
 
 class Collections(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
 
+    async def _collection_ac(self, interaction: discord.Interaction, current: str):
+        return await suggest(interaction, current, "suggest_collections")
+
     @app_commands.command(
         name="collection", description="Show a crew collection's bonus and members (or list all)."
     )
     @app_commands.describe(name="Collection name (leave empty to list all collections)")
+    @app_commands.autocomplete(name=_collection_ac)
     async def collection(self, interaction: discord.Interaction, name: str | None = None) -> None:
         await interaction.response.defer(thinking=True)
         data = self.bot.data  # type: ignore[attr-defined]

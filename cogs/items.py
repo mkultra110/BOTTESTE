@@ -9,13 +9,19 @@ import config
 from pss import PSSApiError
 from pss.formatting import clamp, clean_text, num, rarity_icon
 
+from ._autocomplete import suggest
+
 
 class Items(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
 
+    async def _item_ac(self, interaction: discord.Interaction, current: str):
+        return await suggest(interaction, current, "suggest_items")
+
     @app_commands.command(name="item", description="Look up an item's details and market price.")
     @app_commands.describe(name="Item name (or part of it)")
+    @app_commands.autocomplete(name=_item_ac)
     async def item(self, interaction: discord.Interaction, name: str) -> None:
         await interaction.response.defer(thinking=True)
         data = self.bot.data  # type: ignore[attr-defined]

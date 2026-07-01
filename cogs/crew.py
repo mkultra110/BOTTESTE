@@ -9,6 +9,8 @@ import config
 from pss import PSSApiError
 from pss.formatting import ability_name, clamp, clean_text, equipment_slots, num, rarity_icon
 
+from ._autocomplete import suggest
+
 
 class Crew(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
@@ -19,8 +21,12 @@ class Crew(commands.Cog):
         await data.ensure_loaded()
         return data
 
+    async def _crew_ac(self, interaction: discord.Interaction, current: str):
+        return await suggest(interaction, current, "suggest_characters")
+
     @app_commands.command(name="crew", description="Look up a crew member's stats and ability.")
     @app_commands.describe(name="Crew name (or part of it)")
+    @app_commands.autocomplete(name=_crew_ac)
     async def crew(self, interaction: discord.Interaction, name: str) -> None:
         await interaction.response.defer(thinking=True)
         try:
@@ -162,6 +168,7 @@ class Crew(commands.Cog):
 
     @app_commands.command(name="prestige", description="What two crew members prestige into.")
     @app_commands.describe(crew1="First crew", crew2="Second crew")
+    @app_commands.autocomplete(crew1=_crew_ac, crew2=_crew_ac)
     async def prestige(self, interaction: discord.Interaction, crew1: str, crew2: str) -> None:
         await interaction.response.defer(thinking=True)
         try:
@@ -215,6 +222,7 @@ class Crew(commands.Cog):
         name="prestige-recipes", description="All ways to obtain a crew via prestige."
     )
     @app_commands.describe(name="Target crew to build")
+    @app_commands.autocomplete(name=_crew_ac)
     async def prestige_recipes(self, interaction: discord.Interaction, name: str) -> None:
         await interaction.response.defer(thinking=True)
         try:
