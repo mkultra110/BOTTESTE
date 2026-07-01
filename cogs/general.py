@@ -85,6 +85,11 @@ class General(commands.Cog):
             inline=False,
         )
         embed.add_field(
+            name="🛠️ Rooms",
+            value="`/room <name>` — ship room stats (power, reload, levels).",
+            inline=False,
+        )
+        embed.add_field(
             name="📅 Daily",
             value="`/daily` — today's offers, sale, daily reward and news.",
             inline=False,

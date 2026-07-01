@@ -35,6 +35,7 @@ class GameData:
         self._char_by_name: dict[str, list[int]] = {}
         self._item_by_name: dict[str, list[int]] = {}
         self._collection_by_name: dict[str, list[int]] = {}
+        self._room_by_name: dict[str, list[int]] = {}
 
     # -- loading ------------------------------------------------------------
     @property
@@ -70,6 +71,7 @@ class GameData:
         self._collection_by_name = self._index_by_name(
             collections, "CollectionName", "CollectionDesignId"
         )
+        self._room_by_name = self._index_by_name(rooms, "RoomName", "RoomDesignId")
         self._loaded_at = time.monotonic()
         log.info(
             "Loaded %d crew, %d items, %d rooms, %d collections.",
@@ -108,6 +110,20 @@ class GameData:
         if not c:
             return f"#{coll_id}"
         return c.get("CollectionName") or c.get("CollectionDesignName") or f"#{coll_id}"
+
+    def find_rooms(self, query: str, limit: int = 12) -> list[dict[str, str]]:
+        """All room designs whose name contains the query (across levels)."""
+        key = _norm(query)
+        if not key:
+            return []
+        out = [
+            self.rooms[rid]
+            for name, rids in self._room_by_name.items()
+            if key in name
+            for rid in rids
+        ]
+        out.sort(key=lambda r: (r.get("RoomName", ""), int(r.get("MinShipLevel", 0) or 0)))
+        return out[:limit]
 
     def find_collection(self, query: str) -> dict[str, str] | None:
         key = _norm(query)
