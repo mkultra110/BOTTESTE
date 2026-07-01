@@ -48,24 +48,42 @@ class Daily(commands.Cog):
         # Daily sale
         sale_arg = ops.get("SaleArgument")
         sale_type = ops.get("SaleType")
-        if sale_type and sale_arg:
+        if sale_type and sale_type != "None" and sale_arg:
             label = self._resolve(data, sale_type, sale_arg)
-            embed.add_field(name="🏷️ Daily sale", value=f"{sale_type}: {label}", inline=True)
+            price = self._sale_price(ops.get("SaleRewardString"))
+            price_str = f" — {price}" if price else ""
+            value = f"{self._friendly_type(sale_type)}: {label}{price_str}"
+            end = ops.get("SaleEndDate")
+            if end:
+                value += f"\nEnds {relative_time(end)}"
+            embed.add_field(name="🏷️ Daily sale", value=value, inline=False)
 
         # Limited shop offer
         cat_type = ops.get("LimitedCatalogType")
         cat_arg = ops.get("LimitedCatalogArgument")
-        if cat_type and cat_arg:
+        if cat_type and cat_type != "None" and cat_arg:
             label = self._resolve(data, cat_type, cat_arg)
             price = ops.get("LimitedCatalogCurrencyAmount")
             currency = ops.get("LimitedCatalogCurrencyType", "")
             price_str = f" — {num(price)} {currency}" if price else ""
-            qty = ops.get("LimitedCatalogQuantity")
-            qty_str = f" ×{qty}" if qty else ""
-            embed.add_field(name="🛒 Shop offer", value=f"{label}{qty_str}{price_str}", inline=True)
+            # LimitedCatalogQuantity is the *remaining stock*, not a bundle size.
+            left = ops.get("LimitedCatalogQuantity")
+            restock = ops.get("LimitedCatalogRestockQuantity")
+            stock_bits = []
+            if left:
+                stock_bits.append(f"{left} left")
+            if restock and restock != "0":
+                stock_bits.append(f"restocks {restock}")
+            stock_str = f" ({', '.join(stock_bits)})" if stock_bits else ""
+            embed.add_field(name="🛒 Shop offer", value=f"{label}{price_str}{stock_str}", inline=False)
             expiry = ops.get("LimitedCatalogExpiryDate")
             if expiry:
                 embed.add_field(name="⏳ Shop resets", value=relative_time(expiry), inline=True)
+
+        # Dropship cargo merchant
+        cargo = self._cargo(data, ops.get("CargoItems"), ops.get("CargoPrices"))
+        if cargo:
+            embed.add_field(name="🚚 Cargo merchant", value=cargo, inline=False)
 
         # Featured crew
         common = ops.get("CommonCrewId")
@@ -81,8 +99,19 @@ class Daily(commands.Cog):
         embed.set_footer(text="Resets daily at 00:00 UTC")
         await interaction.followup.send(embed=embed)
 
+    FRIENDLY_TYPES = {
+        "FleetGift": "Fleet gift",
+        "LimitedCatalog": "Limited offer",
+        "Bonus": "Bonus",
+    }
+
+    def _friendly_type(self, kind: str) -> str:
+        return self.FRIENDLY_TYPES.get(kind, kind)
+
     def _resolve(self, data, kind: str, arg: str) -> str:
-        """Resolve an item/character id to a name where possible."""
+        """Resolve an item/character id (or bonus) to a readable label."""
+        if kind == "Bonus":
+            return f"+{arg}% bonus"
         try:
             arg_id = int(arg)
         except (TypeError, ValueError):
@@ -94,6 +123,40 @@ class Daily(commands.Cog):
         if kind in ("Character", "Crew"):
             return data.char_name(arg_id)
         return f"#{arg_id}"
+
+    def _sale_price(self, reward_string: str | None) -> str:
+        """Extract a real-money price from a SaleRewardString like
+        'item:1187x[USD/2]' -> 'USD 2'."""
+        if not reward_string or "[" not in reward_string:
+            return ""
+        try:
+            inside = reward_string.split("[", 1)[1].split("]", 1)[0]
+            currency, _, amount = inside.partition("/")
+            return f"{currency} {amount}".strip()
+        except (IndexError, ValueError):
+            return ""
+
+    def _cargo(self, data, items_raw: str | None, prices_raw: str | None) -> str:
+        """Pair CargoItems ('836x1|...') with CargoPrices ('starbux:100|...')."""
+        if not items_raw:
+            return ""
+        items = items_raw.split("|")
+        prices = (prices_raw or "").split("|")
+        lines = []
+        for i, chunk in enumerate(items):
+            if "x" not in chunk:
+                continue
+            iid, _, qty = chunk.partition("x")
+            try:
+                name = data.items.get(int(iid), {}).get("ItemDesignName", f"#{iid}")
+            except ValueError:
+                name = f"#{iid}"
+            price = ""
+            if i < len(prices) and ":" in prices[i]:
+                cur, _, amt = prices[i].partition(":")
+                price = f" — {num(amt)} {cur}"
+            lines.append(f"{qty}× {name}{price}")
+        return "\n".join(lines)
 
     def _item_list(self, data, raw: str) -> str:
         parts = []

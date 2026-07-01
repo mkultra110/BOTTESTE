@@ -30,15 +30,23 @@ class Fleets(commands.Cog):
             await interaction.followup.send("No fleet data available right now.")
             return
 
+        divisions = {1: "A", 2: "B", 3: "C", 4: "D"}
         medals = {0: "🥇", 1: "🥈", 2: "🥉"}
         lines = []
         for i, a in enumerate(alliances[:count]):
             rank = medals.get(i, f"`#{i + 1}`")
-            name = a.get("AllianceName", "?")
+            name = clean_text(a.get("AllianceName")) or "?"
             trophy = num(a.get("Trophy"))
-            members = a.get("NumberOfMembers") or a.get("MemberCount")
+            members = a.get("NumberOfMembers")
             member_str = f" • 👥 {members}" if members else ""
-            lines.append(f"{rank} **{name}** — 🏆 {trophy}{member_str}")
+            try:
+                div = divisions.get(int(a.get("DivisionDesignId", 0)))
+            except (TypeError, ValueError):
+                div = None
+            div_str = f" • Div {div}" if div else ""
+            score = a.get("Score")
+            score_str = f" • ⭐ {num(score)}" if score and score != "0" else ""
+            lines.append(f"{rank} **{name}** — 🏆 {trophy}{member_str}{score_str}{div_str}")
 
         embed = discord.Embed(
             title="🚀 Top fleets",

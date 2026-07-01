@@ -7,7 +7,7 @@ from discord.ext import commands
 
 import config
 from pss import PSSApiError
-from pss.formatting import clean_text, num, rarity_icon
+from pss.formatting import ability_name, clean_text, equipment_slots, num, rarity_icon
 
 
 class Crew(commands.Cog):
@@ -51,16 +51,27 @@ class Crew(commands.Cog):
             color=config.BOT_COLOR,
         )
         embed.add_field(name="Rarity", value=rarity, inline=True)
-        if c.get("Gender") or c.get("GenderType"):
-            embed.add_field(name="Gender", value=c.get("GenderType", c.get("Gender", "?")), inline=True)
-        if c.get("SpecialAbilityType") and c["SpecialAbilityType"] != "None":
-            ability = c["SpecialAbilityType"]
+        gender = c.get("GenderType")
+        if gender and gender != "Unknown":
+            embed.add_field(name="Gender", value=gender, inline=True)
+        race = c.get("RaceType")
+        if race and race != "Unknown":
+            embed.add_field(name="Race", value=race, inline=True)
+
+        ability = ability_name(c.get("SpecialAbilityType"))
+        if ability:
             arg = c.get("SpecialAbilityFinalArgument") or c.get("SpecialAbilityArgument")
             embed.add_field(
                 name="✨ Ability",
-                value=f"{ability}" + (f" ({num(arg)})" if arg else ""),
+                value=f"{ability}" + (f" ({num(arg)})" if arg and arg != "0" else ""),
                 inline=True,
             )
+
+        slots = equipment_slots(c.get("EquipmentMask"))
+        if slots:
+            embed.add_field(name="🎽 Equip slots", value=slots, inline=True)
+        if c.get("TrainingCapacity") and c["TrainingCapacity"] != "0":
+            embed.add_field(name="🎓 Training cap", value=num(c["TrainingCapacity"]), inline=True)
 
         stats = [
             ("❤️ HP", "FinalHp"),
@@ -84,7 +95,11 @@ class Crew(commands.Cog):
 
         collection = c.get("CollectionDesignId")
         if collection and collection not in ("0", ""):
-            embed.add_field(name="Collection", value=f"#{collection}", inline=True)
+            embed.add_field(
+                name="🎖️ Collection",
+                value=self.bot.data.collection_name(collection),  # type: ignore[attr-defined]
+                inline=True,
+            )
 
         embed.set_footer(text=f"Crew ID {c.get('CharacterDesignId', '?')}")
         return embed

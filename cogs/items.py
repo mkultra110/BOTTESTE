@@ -52,7 +52,7 @@ class Items(commands.Cog):
         if it.get("ItemSubType") and it["ItemSubType"] != "None":
             embed.add_field(name="Subtype", value=it["ItemSubType"], inline=True)
 
-        # Enhancement / bonus
+        # Enhancement / bonus (equipment) or module effect (consumables)
         if it.get("EnhancementType") and it["EnhancementType"] != "None":
             val = it.get("EnhancementValue", "")
             embed.add_field(
@@ -60,35 +60,60 @@ class Items(commands.Cog):
                 value=f"{it['EnhancementType']} +{val}",
                 inline=True,
             )
+        elif it.get("ModuleType") and it["ModuleType"] not in ("None", ""):
+            arg = it.get("ModuleArgument", "")
+            embed.add_field(
+                name="✨ Effect",
+                value=f"{it['ModuleType']}" + (f" ({num(arg)})" if arg and arg != "0" else ""),
+                inline=True,
+            )
 
-        # Prices
+        # Prices (static catalogue values, not live market listings)
         market = it.get("MarketPrice")
         fair = it.get("FairPrice")
         price_bits = []
         if market and market != "0":
-            price_bits.append(f"Market: **{num(market)}** 💰")
+            price_bits.append(f"Savy value: **{num(market)}** 💰")
         if fair and fair != "0":
             price_bits.append(f"Fair: **{num(fair)}** 💰")
         if price_bits:
-            embed.add_field(name="Prices (Starbux)", value="\n".join(price_bits), inline=False)
+            embed.add_field(name="Catalogue price (Starbux)", value="\n".join(price_bits), inline=False)
 
-        # Crafting ingredients
+        # Crafting ingredients (+ resource cost)
         ingredients = it.get("Ingredients")
         if ingredients:
-            parts = []
-            for chunk in ingredients.split("|"):
-                if "x" in chunk:
-                    iid, _, qty = chunk.partition("x")
-                    try:
-                        name = self.bot.data.items.get(int(iid), {}).get("ItemDesignName", f"#{iid}")  # type: ignore[attr-defined]
-                    except ValueError:
-                        name = f"#{iid}"
-                    parts.append(f"{qty}× {name}")
+            parts = self._item_refs(ingredients)
+            for res_key, label in (("GasCost", "Gas"), ("MineralCost", "Mineral")):
+                val = it.get(res_key)
+                if val and val != "0":
+                    parts.append(f"{num(val)} {label}")
             if parts:
                 embed.add_field(name="🧪 Crafted from", value=", ".join(parts), inline=False)
 
+        # Crate / prize contents
+        content = it.get("Content")
+        if content:
+            refs = self._item_refs(content)
+            if refs:
+                embed.add_field(name="🎁 Contains", value=", ".join(refs[:20]), inline=False)
+
         embed.set_footer(text=f"Item ID {it.get('ItemDesignId', '?')}")
         return embed
+
+    def _item_refs(self, raw: str) -> list[str]:
+        """Parse a '|'-separated list of 'idxqty' or 'kind:idxqty' item refs."""
+        parts: list[str] = []
+        for chunk in raw.split("|"):
+            entry = chunk.split(":", 1)[1] if ":" in chunk else chunk
+            if "x" not in entry:
+                continue
+            iid, _, qty = entry.partition("x")
+            try:
+                name = self.bot.data.items.get(int(iid), {}).get("ItemDesignName", f"#{iid}")  # type: ignore[attr-defined]
+            except ValueError:
+                name = f"#{iid}"
+            parts.append(f"{qty}× {name}")
+        return parts
 
 
 async def setup(bot: commands.Bot) -> None:

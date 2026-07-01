@@ -18,8 +18,8 @@ class Players(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
 
-    @app_commands.command(name="player", description="Search a Pixel Starships player by name.")
-    @app_commands.describe(name="Player name (or the start of it)")
+    @app_commands.command(name="player", description="Look up a Pixel Starships player by exact name.")
+    @app_commands.describe(name="Exact in-game player name")
     async def player(self, interaction: discord.Interaction, name: str) -> None:
         await interaction.response.defer(thinking=True)
         api = self.bot.api  # type: ignore[attr-defined]
@@ -72,14 +72,25 @@ class Players(commands.Cog):
                 inline=True,
             )
 
+        if u.get("HighestTrophy"):
+            embed.add_field(name="📈 Best trophies", value=num(u.get("HighestTrophy")), inline=True)
+
         if u.get("PVPAttackWins") is not None:
             wins = num(u.get("PVPAttackWins"))
             losses = num(u.get("PVPAttackLosses"))
             embed.add_field(name="⚔️ Attacks W/L", value=f"{wins} / {losses}", inline=True)
+        if u.get("PVPDefenceWins") is not None:
+            dw = num(u.get("PVPDefenceWins"))
+            dl = num(u.get("PVPDefenceLosses"))
+            embed.add_field(name="🛡️ Defence W/L", value=f"{dw} / {dl}", inline=True)
 
-        last_seen = u.get("LastHeartBeatDate") or u.get("LastLoginDate") or u.get("LastAlertDate")
+        # LastAlertDate is roughly "now" for every player, so it's useless as a
+        # last-seen signal — use the real activity fields only.
+        last_seen = u.get("LastHeartBeatDate") or u.get("LastLoginDate")
         if last_seen:
             embed.add_field(name="🕒 Last seen", value=relative_time(last_seen), inline=True)
+        if u.get("CreationDate"):
+            embed.add_field(name="🎂 Account created", value=relative_time(u.get("CreationDate")), inline=True)
 
         if u.get("CrewDonated") is not None:
             embed.add_field(
