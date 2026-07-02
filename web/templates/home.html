@@ -18,7 +18,16 @@
     <h2>🛒 Shop offer</h2>
     <p><a href="/item/{{ sale_item.ItemDesignId }}">{{ sale_item.ItemDesignName }}</a>
        — {{ ops.get("LimitedCatalogCurrencyAmount") | num }} {{ ops.get("LimitedCatalogCurrencyType") }}</p>
-    <p class="muted">{{ ops.get("LimitedCatalogQuantity") }} in stock today</p>
+    {% if deal and deal.verdict != "unknown" %}
+      <p class="verdict verdict-{{ deal.verdict }}">
+        {% if deal.verdict == "good" %}🔥 Good deal{% elif deal.verdict == "bad" %}⚠️ Above market{% else %}⚖️ Fair price{% endif %}
+        — {{ deal.note }}</p>
+      <p class="muted">Recent market: {{ deal.lo | num }}–{{ deal.hi | num }} bux (typical {{ deal.typical | num }})</p>
+    {% elif deal %}
+      <p class="muted">{{ deal.note }}</p>
+    {% endif %}
+    <p class="muted">{{ ops.get("LimitedCatalogQuantity") }} in stock today
+      {%- if recurrence %} · offered {{ recurrence.times }}× since {{ recurrence.tracked_since }}{% endif %}</p>
   </section>
   {% endif %}
 
@@ -26,6 +35,12 @@
   <section class="card">
     <h2>🧑‍🚀 Hero crew today</h2>
     <p><a href="/crew/{{ featured.hero.CharacterDesignId }}">{{ featured.hero.Rarity | rarity_icon }} {{ featured.hero.CharacterDesignName }}</a></p>
+    {% if hero_verdict and hero_verdict.best %}
+      <p class="verdict {% if hero_verdict.best.top <= 25 %}verdict-good{% elif hero_verdict.best.top >= 60 %}verdict-bad{% else %}verdict-fair{% endif %}">
+        {% for s in hero_verdict.stats %}{{ s.label }} top {{ s.top }}%{% if not loop.last %} · {% endif %}{% endfor %}
+        <span class="muted">of {{ hero_verdict.peer_count }} {{ hero_verdict.rarity }} crew</span>
+      </p>
+    {% endif %}
     {% if featured.common %}
     <p class="muted">Daily crew: <a href="/crew/{{ featured.common.CharacterDesignId }}">{{ featured.common.CharacterDesignName }}</a></p>
     {% endif %}

@@ -38,3 +38,27 @@ def test_price_chart_geometry():
 def test_price_chart_needs_two_points():
     assert webapp._price_chart([]) is None
     assert webapp._price_chart([("2026-06-01", 100)]) is None
+
+
+def test_percentile_top():
+    peers = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
+    assert webapp._percentile_top(peers, 10.0) == 1   # best -> top 1%
+    assert webapp._percentile_top(peers, 5.0) == 50   # median
+    assert webapp._percentile_top(peers, 0.5) == 100  # worst
+    assert webapp._percentile_top([], 5.0) == 100     # no peers
+
+
+def test_crew_verdict_uses_same_rarity_peers():
+    webapp.data.characters = {
+        1: {"CharacterDesignId": "1", "Rarity": "Hero", "FinalAttack": "10",
+            "FinalHp": "5", "FinalRepair": "1", "SpecialAbilityFinalArgument": "0"},
+        2: {"CharacterDesignId": "2", "Rarity": "Hero", "FinalAttack": "2",
+            "FinalHp": "9", "FinalRepair": "2", "SpecialAbilityFinalArgument": "0"},
+        3: {"CharacterDesignId": "3", "Rarity": "Common", "FinalAttack": "99",
+            "FinalHp": "99", "FinalRepair": "99", "SpecialAbilityFinalArgument": "0"},
+    }
+    v = webapp._crew_verdict(webapp.data.characters[1])
+    assert v["peer_count"] == 2          # commons excluded
+    assert v["best"]["label"] == "ATK"   # attack is its best stat
+    assert v["best"]["top"] == 1
+    webapp.data.characters = {}

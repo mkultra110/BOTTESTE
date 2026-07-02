@@ -57,6 +57,12 @@ h2 { font-size: 1.05rem; margin: 0 0 .5rem; color: var(--text-secondary); }
 }
 
 .freshness { color: var(--text-secondary); }
+
+.verdict { font-weight: 600; }
+.verdict-good { color: #199e70; }
+.verdict-bad { color: #e66767; }
+.verdict-fair { color: #c98500; }
+.verdict .muted { font-weight: 400; }
 .tournament { color: var(--text-secondary); }
 .tournament.live { color: #eda100; font-weight: 600; }
 

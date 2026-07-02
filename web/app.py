@@ -157,6 +157,102 @@ def render(request: Request, template: str, **ctx) -> HTMLResponse:
     return templates.TemplateResponse(request, template, ctx)
 
 
+# --- daily deal verdict ------------------------------------------------------
+def _percentile_top(peers: list[float], value: float) -> int:
+    """Return the 'top N%' rank of value among peers (lower = better)."""
+    if not peers:
+        return 100
+    better = sum(1 for p in peers if p > value)
+    return max(1, round(better / len(peers) * 100))
+
+
+def _crew_verdict(crew: dict[str, str]) -> dict | None:
+    """Percentile ranks of a crew's key stats vs same-rarity peers."""
+    if not crew:
+        return None
+    rarity = crew.get("Rarity")
+    peers = [c for c in data.characters.values() if c.get("Rarity") == rarity]
+
+    def fval(c: dict[str, str], key: str) -> float:
+        try:
+            return float(c.get(key, 0) or 0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    stats = []
+    for label, key in (("ATK", "FinalAttack"), ("HP", "FinalHp"),
+                       ("RPR", "FinalRepair"), ("ABL", "SpecialAbilityFinalArgument")):
+        v = fval(crew, key)
+        if v <= 0:
+            continue
+        pct = _percentile_top([fval(p, key) for p in peers], v)
+        stats.append({"label": label, "top": pct, "value": v})
+    stats.sort(key=lambda s: s["top"])
+    best = stats[0] if stats else None
+    return {"stats": stats[:3], "best": best, "peer_count": len(peers), "rarity": rarity}
+
+
+def _offer_recurrence(cat_arg: str | None) -> dict | None:
+    """How often today's shop item appeared in our own LiveOps archive."""
+    if not cat_arg:
+        return None
+    path = os.path.join(ARCHIVE_DIR, "liveops.jsonl")
+    if not os.path.exists(path):
+        return None
+    seen: list[str] = []
+    try:
+        with open(path) as fh:
+            for line in fh:
+                try:
+                    row = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if row.get("liveops", {}).get("LimitedCatalogArgument") == cat_arg:
+                    seen.append(row.get("date", ""))
+    except OSError:
+        return None
+    if not seen:
+        return None
+    return {"times": len(seen), "tracked_since": seen[0]}
+
+
+async def _item_deal_verdict(ops: dict[str, str], sale_item: dict | None) -> dict | None:
+    """Compare today's shop offer price against the item's market history."""
+    if not sale_item or ops.get("LimitedCatalogCurrencyType") != "Starbux":
+        return None
+    try:
+        offer_price = int(ops.get("LimitedCatalogCurrencyAmount", 0) or 0)
+        item_id = int(sale_item["ItemDesignId"])
+    except (TypeError, ValueError):
+        return None
+    if offer_price <= 0:
+        return None
+    try:
+        history = await cached(f"price:{item_id}", 3600, lambda: api.price_history(item_id))
+    except PSSApiError:
+        history = []
+    # Ignore zero-price days (no trades recorded).
+    priced = [(d, v) for d, v in history if v > 0]
+    if len(priced) < 7:
+        return {"offer": offer_price, "verdict": "unknown",
+                "note": "Not enough market history to compare against."}
+    recent = [v for _, v in priced[-7:]]
+    typical = sum(recent) / len(recent)
+    if typical <= 0:
+        return {"offer": offer_price, "verdict": "unknown",
+                "note": "Not enough market history to compare against."}
+    diff_pct = round((offer_price - typical) / typical * 100)
+    if diff_pct <= -15:
+        verdict, note = "good", f"~{-diff_pct}% below the recent market price"
+    elif diff_pct >= 15:
+        verdict, note = "bad", f"~{diff_pct}% above the recent market price"
+    else:
+        verdict, note = "fair", "close to the recent market price"
+    return {"offer": offer_price, "typical": round(typical),
+            "lo": min(recent), "hi": max(recent),
+            "diff_pct": diff_pct, "verdict": verdict, "note": note}
+
+
 # --- pages ------------------------------------------------------------------
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
@@ -173,9 +269,13 @@ async def home(request: Request):
             sale_item = data.items.get(int(ops.get("LimitedCatalogArgument", 0) or 0))
     except ValueError:
         pass
+    deal = await _item_deal_verdict(ops, sale_item)
+    hero_verdict = _crew_verdict(featured["hero"]) if featured["hero"] else None
+    recurrence = _offer_recurrence(ops.get("LimitedCatalogArgument"))
     return render(request, "home.html", ops=ops, fleets=fleets, featured=featured,
                   sale_item=sale_item, news=clean_text(ops.get("News")),
-                  tournament=tournament_info())
+                  tournament=tournament_info(), deal=deal,
+                  hero_verdict=hero_verdict, recurrence=recurrence)
 
 
 @app.get("/search", response_class=HTMLResponse)
