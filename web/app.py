@@ -279,7 +279,10 @@ def _offer_recurrence(cat_type: str | None, cat_arg: str | None) -> dict | None:
         return None
     if not seen:
         return None
-    return {"times": len(seen), "tracked_since": seen[0]}
+    # Unique dates only: legacy files may hold same-day duplicates from
+    # before the dedupe fix.
+    unique = sorted(set(seen))
+    return {"times": len(unique), "tracked_since": unique[0]}
 
 
 async def _item_deal_verdict(ops: dict[str, str], sale_item: dict | None) -> dict | None:

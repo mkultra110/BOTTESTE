@@ -15,7 +15,7 @@
     <h2>🧑‍🚀 Crew</h2>
     <ul>
       {% for c in results["crew"] %}
-        <li><a href="/crew/{{ c.CharacterDesignId }}">{{ c.Rarity | rarity_icon }} {{ c.CharacterDesignName }}</a>
+        <li><a href="/crew/{{ c.CharacterDesignId }}">{{ sprite(c.ProfileSpriteId, 28, "") }} {{ c.Rarity | rarity_icon }} {{ c.CharacterDesignName }}</a>
             <span class="muted">{{ c.Rarity }}{% if c.SpecialAbilityType and c.SpecialAbilityType != "None" %} · {{ c.SpecialAbilityType | ability }}{% endif %}</span></li>
       {% endfor %}
     </ul>
@@ -27,7 +27,7 @@
     <h2>📦 Items</h2>
     <ul>
       {% for i in results["items"] %}
-        <li><a href="/item/{{ i.ItemDesignId }}">{{ i.Rarity | rarity_icon }} {{ i.ItemDesignName }}</a>
+        <li><a href="/item/{{ i.ItemDesignId }}">{{ sprite(i.ImageSpriteId, 28, "") }} {{ i.Rarity | rarity_icon }} {{ i.ItemDesignName }}</a>
             <span class="muted">{{ i.ItemType }}</span></li>
       {% endfor %}
     </ul>

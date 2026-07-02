@@ -58,7 +58,7 @@
     {% for f in fleets %}
       <tr>
         <td>{{ loop.index }}</td>
-        <td><a href="/fleet/{{ f.AllianceId }}">{{ f.AllianceName | clean }}</a></td>
+        <td><a href="/fleet/{{ f.AllianceId }}">{{ sprite(f.AllianceSpriteId, 24, "") }} {{ f.AllianceName | clean }}</a></td>
         <td class="num">{{ f.Trophy | num }}</td>
         <td class="num">{{ f.Score | num if f.Score and f.Score != "0" else "—" }}</td>
         <td>{{ {"1":"A","2":"B","3":"C","4":"D"}.get(f.DivisionDesignId, "—") }}</td>

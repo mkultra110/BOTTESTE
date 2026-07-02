@@ -3,7 +3,7 @@
 {% block description %}#{{ rank }} fleet · {{ a.Trophy | num }} trophies · {{ a.NumberOfMembers }} members{% if a.Score and a.Score != "0" %} · {{ a.Score | num }} tournament stars{% endif %}.{% endblock %}
 {% block content %}
 <p><a href="/fleets">← Top 100 fleets</a></p>
-<h1>🚀 {{ a.AllianceName | clean }} <span class="muted">#{{ rank }}</span></h1>
+<h1>{{ sprite(a.AllianceSpriteId, 48, "") }} {{ a.AllianceName | clean }} <span class="muted">#{{ rank }}</span></h1>
 {% if a.AllianceDescription %}<p class="muted">{{ a.AllianceDescription | clean }}</p>{% endif %}
 
 <div class="cards">

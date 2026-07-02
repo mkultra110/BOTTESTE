@@ -6,7 +6,7 @@
 <div class="cards">
 {% for c in collections %}
   <section class="card">
-    <h2>🎖️ {{ c.CollectionName }}</h2>
+    <h2>{{ sprite(c.IconSpriteId or c.SpriteId, 28, "") }} {{ c.CollectionName }}</h2>
     <p class="muted">{{ c.CollectionDescription | clean }}</p>
     <dl>
       {% if c.AbilityName %}<dt>Ability</dt><dd>{{ c.AbilityName }}</dd>{% endif %}

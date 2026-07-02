@@ -11,7 +11,7 @@ Your roster lives in the URL — bookmark or share it, no account needed.</p>
   {% if roster_crew %}
     <p class="roster">
       {% for c in roster_crew %}
-        <span class="chip">{{ c.Rarity | rarity_icon }}
+        <span class="chip">{{ sprite(c.ProfileSpriteId, 22, "") }} {{ c.Rarity | rarity_icon }}
           <a href="/crew/{{ c.CharacterDesignId }}">{{ c.CharacterDesignName }}</a>
           <a class="chip-x" title="Remove"
              href="/planner?roster={{ roster_ids | reject('equalto', c.CharacterDesignId | int) | join(',') }}">×</a>
@@ -32,7 +32,7 @@ Your roster lives in the URL — bookmark or share it, no account needed.</p>
     {% if matches %}
       <ul>
         {% for m in matches %}
-          <li><a href="/planner?roster={{ roster_param ~ ',' if roster_param }}{{ m.CharacterDesignId }}">➕ {{ m.Rarity | rarity_icon }} {{ m.CharacterDesignName }}</a>
+          <li><a href="/planner?roster={{ roster_param ~ ',' if roster_param }}{{ m.CharacterDesignId }}">➕ {{ sprite(m.ProfileSpriteId, 26, "") }} {{ m.Rarity | rarity_icon }} {{ m.CharacterDesignName }}</a>
               <span class="muted">{{ m.Rarity }}</span></li>
         {% endfor %}
       </ul>
@@ -51,7 +51,7 @@ Your roster lives in the URL — bookmark or share it, no account needed.</p>
         <tbody>
         {% for c in combos %}
           <tr>
-            <td><a href="/crew/{{ c.to }}">{{ c.target.get("Rarity","") | rarity_icon }} {{ c.target.get("CharacterDesignName", "#" ~ c.to) }}</a></td>
+            <td><a href="/crew/{{ c.to }}">{{ sprite(c.target.get("ProfileSpriteId"), 30, "") }} {{ c.target.get("Rarity","") | rarity_icon }} {{ c.target.get("CharacterDesignName", "#" ~ c.to) }}</a></td>
             <td>{{ c.target.get("Rarity", "?") }}</td>
             <td>{{ char(c.a).get("CharacterDesignName", "#" ~ c.a) }} ➕ {{ char(c.b).get("CharacterDesignName", "#" ~ c.b) }}{% if c.a == c.b %} <span class="muted">(needs 2 copies)</span>{% endif %}</td>
           </tr>
