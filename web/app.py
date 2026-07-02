@@ -18,8 +18,15 @@ import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 
+import aiohttp
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, Response
+from fastapi.responses import (
+    FileResponse,
+    HTMLResponse,
+    JSONResponse,
+    PlainTextResponse,
+    Response,
+)
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -149,6 +156,40 @@ templates.env.filters["rarity_icon"] = rarity_icon
 templates.env.filters["ability"] = ability_name
 templates.env.filters["slots"] = equipment_slots
 templates.env.globals["now"] = time.time
+
+# Sprites are served through our own /sprite/{file}.png proxy (disk-cached)
+# rather than hotlinking Savy's S3 from every visitor's browser.
+SPRITE_CDN = "/sprite"
+SPRITE_UPSTREAM = "https://pixelstarships.s3.amazonaws.com"
+SPRITE_CACHE_DIR = os.environ.get(
+    "PSS_SPRITE_CACHE_DIR", os.path.join(os.getcwd(), "data", "sprites"))
+
+
+def sprite_html(sprite_id, target_height: int = 32, alt: str = "") -> "Markup":
+    """Inline game sprite cropped from its spritesheet, scaled to fit
+    ``target_height`` pixels (sprites vary wildly in native size).
+
+    Falls back to empty output when the sprite is unknown, so pages degrade
+    gracefully if the sprite catalogue failed to load.
+    """
+    info = data.sprite_info(sprite_id)
+    if not info:
+        return Markup("")
+    w, h = info["w"], info["h"]
+    scale = round(min(target_height / h, 4.0), 3)
+    return Markup(
+        f'<span class="sprite-box" role="img" aria-label="{alt}" '
+        f'style="width:{round(w * scale)}px;height:{round(h * scale)}px">'
+        f'<span class="sprite" style="width:{w}px;height:{h}px;'
+        f"background-image:url('{SPRITE_CDN}/{info['file']}.png');"
+        f'background-position:-{info["x"]}px -{info["y"]}px;'
+        f'transform:scale({scale})"></span></span>'
+    )
+
+
+from markupsafe import Markup  # noqa: E402  (used by sprite_html)
+
+templates.env.globals["sprite"] = sprite_html
 
 
 def render(request: Request, template: str, **ctx) -> HTMLResponse:
@@ -628,6 +669,32 @@ async def api_daily():
 @app.get("/healthz")
 async def healthz():
     return {"ok": True, "crew": len(data.characters), "items": len(data.items)}
+
+
+# --- sprite proxy -------------------------------------------------------------
+@app.get("/sprite/{file_id}.png")
+async def sprite_file(file_id: int):
+    """Serve a spritesheet, fetching from the game CDN once and disk-caching."""
+    if not (0 < file_id < 10_000_000):
+        raise HTTPException(404)
+    path = os.path.join(SPRITE_CACHE_DIR, f"{file_id}.png")
+    if not os.path.exists(path):
+        os.makedirs(SPRITE_CACHE_DIR, exist_ok=True)
+        if api._session is None or api._session.closed:
+            await api.start()
+        try:
+            async with api._session.get(f"{SPRITE_UPSTREAM}/{file_id}.png") as resp:
+                if resp.status != 200:
+                    raise HTTPException(404, "Sprite sheet not found")
+                content = await resp.read()
+        except aiohttp.ClientError as exc:
+            raise HTTPException(502, f"Upstream error: {exc}")
+        tmp = f"{path}.tmp-{os.getpid()}"
+        with open(tmp, "wb") as fh:
+            fh.write(content)
+        os.replace(tmp, path)
+    return FileResponse(path, media_type="image/png",
+                        headers={"Cache-Control": "public, max-age=604800"})
 
 
 # --- SEO ---------------------------------------------------------------------

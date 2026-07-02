@@ -32,6 +32,8 @@ class GameData:
         self.rooms: dict[int, dict[str, str]] = {}
         self.collections: dict[int, dict[str, str]] = {}
         self.ships: dict[int, dict[str, str]] = {}
+        # SpriteId -> {"file": int, "x": int, "y": int, "w": int, "h": int}
+        self.sprites: dict[int, dict[str, int]] = {}
 
         # A normalized name can map to several designs (e.g. two "Michelle").
         self._char_by_name: dict[str, list[int]] = {}
@@ -66,6 +68,22 @@ class GameData:
         except Exception as exc:  # ships are non-critical
             log.warning("Could not load ship designs: %s", exc)
             ships = []
+        try:
+            raw_sprites = await self.api.list_sprites()
+        except Exception as exc:  # sprites are non-critical (site falls back to text)
+            log.warning("Could not load sprites: %s", exc)
+            raw_sprites = []
+        sprites: dict[int, dict[str, int]] = {}
+        for s in raw_sprites:
+            try:
+                sprites[int(s["SpriteId"])] = {
+                    "file": int(s["ImageFileId"]),
+                    "x": int(s.get("X", 0)), "y": int(s.get("Y", 0)),
+                    "w": int(s.get("Width", 0)), "h": int(s.get("Height", 0)),
+                }
+            except (KeyError, TypeError, ValueError):
+                continue
+        self.sprites = sprites
 
         self.characters = {int(c["CharacterDesignId"]): c for c in chars if c.get("CharacterDesignId")}
         self.items = {int(i["ItemDesignId"]): i for i in items if i.get("ItemDesignId")}
@@ -117,6 +135,16 @@ class GameData:
         except (TypeError, ValueError):
             c = None
         return c["CharacterDesignName"] if c else f"#{char_id}"
+
+    def sprite_info(self, sprite_id: int | str) -> dict[str, int] | None:
+        """Crop info for a sprite id, or None if unknown/degenerate."""
+        try:
+            info = self.sprites.get(int(sprite_id))
+        except (TypeError, ValueError):
+            return None
+        if not info or info["w"] <= 0 or info["h"] <= 0:
+            return None
+        return info
 
     def collection_name(self, coll_id: int | str) -> str:
         try:

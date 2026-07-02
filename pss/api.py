@@ -215,6 +215,14 @@ class PSSApi:
         )
         return [s.attrib for s in root.iter("ShipDesign")]
 
+    async def list_sprites(self) -> list[dict[str, str]]:
+        """Sprite catalogue: SpriteId -> spritesheet file + crop coordinates.
+
+        Large payload (~4 MB XML); callers should cache the result.
+        """
+        root = await self._get("FileService/ListSprites")
+        return [s.attrib for s in root.iter("Sprite")]
+
     async def prestige_from(self, char_id: int) -> list[dict[str, str]]:
         try:
             root = await self._get(

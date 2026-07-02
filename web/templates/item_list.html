@@ -21,7 +21,7 @@
   <tbody>
   {% for i in items %}
     <tr>
-      <td><a href="/item/{{ i.ItemDesignId }}">{{ i.Rarity | rarity_icon }} {{ i.ItemDesignName }}</a></td>
+      <td><a href="/item/{{ i.ItemDesignId }}">{{ sprite(i.ImageSpriteId, 36, "") }} {{ i.Rarity | rarity_icon }} {{ i.ItemDesignName }}</a></td>
       <td>{{ i.Rarity }}</td>
       <td>{{ i.ItemType }}{% if i.ItemSubType and i.ItemSubType != "None" %} · {{ i.ItemSubType }}{% endif %}</td>
       <td>{% if i.EnhancementType and i.EnhancementType != "None" %}{{ i.EnhancementType }} +{{ i.EnhancementValue }}{% endif %}</td>

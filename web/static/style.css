@@ -127,6 +127,15 @@ details summary { cursor: pointer; color: var(--text-secondary); margin: .5rem 0
 .chip-x { color: var(--text-muted); font-weight: 700; padding: 0 .15rem; }
 .chip-x:hover { color: var(--error); text-decoration: none; }
 
+/* game sprites: crop from the spritesheet, scale with pixelated rendering */
+.sprite-box { display: inline-block; overflow: hidden; vertical-align: middle; }
+.sprite {
+  display: block;
+  transform-origin: 0 0;
+  image-rendering: pixelated;
+  background-repeat: no-repeat;
+}
+
 @media (max-width: 640px) {
   dl.stats { grid-template-columns: max-content 1fr; }
   .site-header nav { gap: .7rem; font-size: .95rem; }

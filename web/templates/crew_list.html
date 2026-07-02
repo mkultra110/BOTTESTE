@@ -23,7 +23,7 @@
   <tbody>
   {% for c in crew %}
     <tr>
-      <td><a href="/crew/{{ c.CharacterDesignId }}">{{ c.Rarity | rarity_icon }} {{ c.CharacterDesignName }}</a></td>
+      <td><a href="/crew/{{ c.CharacterDesignId }}">{{ sprite(c.ProfileSpriteId, 36, "") }} {{ c.Rarity | rarity_icon }} {{ c.CharacterDesignName }}</a></td>
       <td>{{ c.Rarity }}</td>
       <td>{{ c.SpecialAbilityType | ability }}</td>
       <td class="num">{{ c.FinalHp | num }}</td>
