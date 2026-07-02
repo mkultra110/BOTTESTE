@@ -7,6 +7,7 @@ us resolve names <-> ids locally.
 from __future__ import annotations
 
 import logging
+import re
 import time
 
 from .api import PSSApi
@@ -116,25 +117,23 @@ class GameData:
     def _suggest(index: dict[str, list[int]], table: dict[int, dict[str, str]],
                  name_key: str, query: str, limit: int = 25) -> list[str]:
         key = _norm(query)
-        names: list[str] = []
+        prefix: list[str] = []
+        substring: list[str] = []
         seen: set[str] = set()
-        # Prefix matches first, then substring matches.
-        for want_prefix in (True, False):
-            for norm_name, ids in index.items():
-                if not norm_name:
-                    continue
-                hit = norm_name.startswith(key) if want_prefix else key in norm_name
-                if not hit:
-                    continue
-                for rid in ids:
-                    display = table.get(rid, {}).get(name_key)
-                    if display and display not in seen:
-                        seen.add(display)
-                        names.append(display)
-            if not key:
-                break
-        names.sort(key=len)
-        return names[:limit]
+        for norm_name, ids in index.items():
+            if not norm_name or (key and key not in norm_name):
+                continue
+            bucket = prefix if norm_name.startswith(key) else substring
+            for rid in ids:
+                display = table.get(rid, {}).get(name_key)
+                if display and display not in seen:
+                    seen.add(display)
+                    bucket.append(display)
+        # Shortest names first within each group, prefix matches ranked above
+        # substring-only matches (which the final ordering must preserve).
+        prefix.sort(key=len)
+        substring.sort(key=len)
+        return (prefix + substring)[:limit]
 
     def suggest_characters(self, query: str) -> list[str]:
         return self._suggest(self._char_by_name, self.characters, "CharacterDesignName", query)
@@ -148,8 +147,12 @@ class GameData:
     def suggest_rooms(self, query: str) -> list[str]:
         return self._suggest(self._room_by_name, self.rooms, "RoomName", query)
 
-    def find_rooms(self, query: str, limit: int = 12) -> list[dict[str, str]]:
-        """All room designs whose name contains the query (across levels)."""
+    def find_rooms(self, query: str, limit: int = 25) -> list[dict[str, str]]:
+        """All room designs whose name contains the query (across levels).
+
+        Sorted by room family then numeric level, so 'Armor Lv2' precedes
+        'Armor Lv10' (a plain string sort would reverse them).
+        """
         key = _norm(query)
         if not key:
             return []
@@ -159,8 +162,16 @@ class GameData:
             if key in name
             for rid in rids
         ]
-        out.sort(key=lambda r: (r.get("RoomName", ""), int(r.get("MinShipLevel", 0) or 0)))
+        out.sort(key=self._room_sort_key)
         return out[:limit]
+
+    @staticmethod
+    def _room_sort_key(room: dict[str, str]) -> tuple[str, int]:
+        name = room.get("RoomName", "")
+        m = re.search(r"(\d+)\s*$", name)
+        level = int(m.group(1)) if m else 0
+        base = re.sub(r"\s*\d+\s*$", "", name)  # room family without trailing level
+        return (base, level)
 
     def find_collection(self, query: str) -> dict[str, str] | None:
         key = _norm(query)

@@ -70,8 +70,13 @@ class Rooms(commands.Cog):
             embed.add_field(name="⚡ Power made", value=num(gen), inline=True)
         if base.get("Capacity") and base["Capacity"] != "0":
             embed.add_field(name="Capacity", value=num(base["Capacity"]), inline=True)
+        # ReloadTime is stored in game ticks (40 ticks = 1 second).
         if base.get("ReloadTime") and base["ReloadTime"] != "0":
-            embed.add_field(name="Reload", value=_fmt_time(base["ReloadTime"]), inline=True)
+            try:
+                reload_s = round(int(base["ReloadTime"]) / 40)
+                embed.add_field(name="Reload", value=_fmt_time(str(reload_s)), inline=True)
+            except (TypeError, ValueError):
+                pass
 
         # List the level variants found.
         variants = [

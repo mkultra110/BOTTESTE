@@ -66,15 +66,17 @@ class Daily(commands.Cog):
             price = ops.get("LimitedCatalogCurrencyAmount")
             currency = ops.get("LimitedCatalogCurrencyType", "")
             price_str = f" — {num(price)} {currency}" if price else ""
-            # LimitedCatalogQuantity is the *remaining stock*, not a bundle size.
+            # LimitedCatalogQuantity is the *remaining stock* (it depletes over
+            # the day from LimitedCatalogRestockQuantity), not a bundle size.
             left = ops.get("LimitedCatalogQuantity")
             restock = ops.get("LimitedCatalogRestockQuantity")
-            stock_bits = []
+            stock_str = ""
             if left:
-                stock_bits.append(f"{left} left")
-            if restock and restock != "0":
-                stock_bits.append(f"restocks {restock}")
-            stock_str = f" ({', '.join(stock_bits)})" if stock_bits else ""
+                # Only note the restock amount once some stock has actually sold.
+                if restock and restock not in ("0", left):
+                    stock_str = f" ({left} of {restock} left)"
+                else:
+                    stock_str = f" ({left} in stock)"
             embed.add_field(name="🛒 Shop offer", value=f"{label}{price_str}{stock_str}", inline=False)
             expiry = ops.get("LimitedCatalogExpiryDate")
             if expiry:

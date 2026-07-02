@@ -34,7 +34,12 @@ ITEMS = [
     {"ItemDesignId": "2", "ItemDesignName": "Gas"},
     {"ItemDesignId": "101", "ItemDesignName": "Android Defence AI"},
 ]
-ROOMS = [{"RoomDesignId": "1", "RoomName": "Bridge Lv1"}]
+ROOMS = [
+    {"RoomDesignId": "1", "RoomName": "Bridge Lv1", "MinShipLevel": "1"},
+    {"RoomDesignId": "2", "RoomName": "Armor Lv2", "MinShipLevel": "2"},
+    {"RoomDesignId": "10", "RoomName": "Armor Lv10", "MinShipLevel": "10"},
+    {"RoomDesignId": "3", "RoomName": "Armor Lv1", "MinShipLevel": "1"},
+]
 COLLECTIONS = [{"CollectionDesignId": "5", "CollectionName": "Cosmic Crusaders"}]
 
 
@@ -49,7 +54,7 @@ def test_loads_all_catalogues():
     data = build()
     assert len(data.characters) == 4
     assert len(data.items) == 2
-    assert len(data.rooms) == 1
+    assert len(data.rooms) == 4
     assert len(data.collections) == 1
 
 
@@ -110,3 +115,11 @@ def test_suggest_collections_and_items():
     data = build()
     assert "Cosmic Crusaders" in data.suggest_collections("cosmic")
     assert "Gas" in data.suggest_items("gas")
+
+
+def test_find_rooms_natural_level_order():
+    data = build()
+    rooms = data.find_rooms("armor")
+    names = [r["RoomName"] for r in rooms]
+    # Lv1 before Lv2 before Lv10 (a plain string sort would put Lv10 second)
+    assert names == ["Armor Lv1", "Armor Lv2", "Armor Lv10"], names

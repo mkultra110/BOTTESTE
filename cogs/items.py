@@ -161,18 +161,36 @@ class Items(commands.Cog):
         await interaction.followup.send(embed=embed)
 
     def _item_refs(self, raw: str) -> list[str]:
-        """Parse a '|'-separated list of 'idxqty' or 'kind:idxqty' item refs."""
+        """Parse a '|'-separated reward/content list.
+
+        Each entry is ``kind:idxqty``, ``kind:id``, ``idxqty`` or ``id``. The
+        quantity (``xN``) is optional and defaults to 1. ``kind`` may be item,
+        character/characterId, skin, roomId, starbux, points, etc.
+        """
+        data = self.bot.data  # type: ignore[attr-defined]
         parts: list[str] = []
         for chunk in raw.split("|"):
-            entry = chunk.split(":", 1)[1] if ":" in chunk else chunk
-            if "x" not in entry:
+            kind, sep, rest = chunk.partition(":")
+            if not sep:
+                kind, rest = "item", chunk
+            iid, _, qty = rest.partition("x")
+            qty = qty or "1"
+            qty_str = f"{qty}× " if qty != "1" else ""
+            # starbux/points encode the amount in the id field itself.
+            if kind in ("starbux", "points"):
+                parts.append(f"{num(iid)} {kind.capitalize()}")
                 continue
-            iid, _, qty = entry.partition("x")
             try:
-                name = self.bot.data.items.get(int(iid), {}).get("ItemDesignName", f"#{iid}")  # type: ignore[attr-defined]
+                iid_int = int(iid)
             except ValueError:
-                name = f"#{iid}"
-            parts.append(f"{qty}× {name}")
+                continue
+            if kind == "item":
+                name = data.items.get(iid_int, {}).get("ItemDesignName", f"item #{iid}")
+            elif kind in ("character", "characterId"):
+                name = f"crew {data.char_name(iid_int)}"
+            else:
+                name = f"{kind} #{iid}"
+            parts.append(f"{qty_str}{name}")
         return parts
 
 

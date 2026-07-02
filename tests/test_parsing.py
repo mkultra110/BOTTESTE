@@ -32,8 +32,24 @@ def test_item_refs_plain_and_kinded():
     assert cog._item_refs("101x5|102x12") == ["5× Titanium", "12× Silicon"]
     # "kind:idxqty"
     assert cog._item_refs("item:101x6|item:102x12") == ["6× Titanium", "12× Silicon"]
-    # unknown id keeps a placeholder
-    assert cog._item_refs("9999x1") == ["1× #9999"]
+    # unknown id keeps a placeholder; qty 1 is implicit (no "1× " prefix)
+    assert cog._item_refs("9999x1") == ["item #9999"]
+
+
+def test_item_refs_no_quantity_defaults_to_one():
+    cog = Items(fake_bot())
+    # crate contents with no 'x' quantity must still render (major bug fix)
+    assert cog._item_refs("item:101|item:102") == ["Titanium", "Silicon"]
+
+
+def test_item_refs_non_item_kinds():
+    cog = Items(fake_bot())
+    # character kind resolves to a crew name, not an item lookup
+    assert cog._item_refs("character:55") == ["crew Ai-Ling"]
+    # starbux/points encode the amount in the id field
+    assert cog._item_refs("starbux:300|points:1") == ["300 Starbux", "1 Points"]
+    # unknown kind is labelled, not mislabelled as an item
+    assert cog._item_refs("skin:97") == ["skin #97"]
 
 
 def test_cargo_pairs_items_with_prices():
