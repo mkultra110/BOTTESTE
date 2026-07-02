@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}{{ q or "Search" }} — PSS Companion{% endblock %}
+{% block content %}
+<h1>Search</h1>
+<form class="filters" method="get" action="/search">
+  <input type="search" name="q" value="{{ q }}" placeholder="Crew, items, rooms, ships…" aria-label="Search" autofocus>
+  <button type="submit">Search</button>
+</form>
+
+{% if q %}
+  <p class="muted">{{ total }} result(s) for “{{ q }}”.</p>
+
+  {% if results["crew"] %}
+  <section>
+    <h2>🧑‍🚀 Crew</h2>
+    <ul>
+      {% for c in results["crew"] %}
+        <li><a href="/crew/{{ c.CharacterDesignId }}">{{ c.Rarity | rarity_icon }} {{ c.CharacterDesignName }}</a>
+            <span class="muted">{{ c.Rarity }}{% if c.SpecialAbilityType and c.SpecialAbilityType != "None" %} · {{ c.SpecialAbilityType | ability }}{% endif %}</span></li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  {% if results["items"] %}
+  <section>
+    <h2>📦 Items</h2>
+    <ul>
+      {% for i in results["items"] %}
+        <li><a href="/item/{{ i.ItemDesignId }}">{{ i.Rarity | rarity_icon }} {{ i.ItemDesignName }}</a>
+            <span class="muted">{{ i.ItemType }}</span></li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  {% if results["rooms"] %}
+  <section>
+    <h2>🛠️ Rooms</h2>
+    <ul>
+      {% for r in results["rooms"] %}
+        <li>{{ r.RoomName }} <span class="muted">{{ r.RoomType }} · min lvl {{ r.MinShipLevel }}</span></li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  {% if results["ships"] %}
+  <section>
+    <h2>🚀 Ships</h2>
+    <ul>
+      {% for s in results["ships"] %}
+        <li>{{ s.ShipDesignName }} <span class="muted">lvl {{ s.ShipLevel }}</span></li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  {% if total == 0 %}<p>Nothing found — try a shorter query.</p>{% endif %}
+{% endif %}
+{% endblock %}

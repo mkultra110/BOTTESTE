@@ -4,15 +4,27 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}PSS Companion{% endblock %}</title>
-  <meta name="description" content="Pixel Starships companion: crew stats, prestige recipes, item prices, daily deals, fleet rankings.">
+  <meta name="description" content="{% block description %}Pixel Starships companion: crew stats, prestige recipes, item prices, daily deals, fleet rankings.{% endblock %}">
+  {# OpenGraph / Twitter cards: server-rendered so links unfurl in Discord #}
+  <meta property="og:site_name" content="PSS Companion">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="{% block og_title %}{{ self.title() }}{% endblock %}">
+  <meta property="og:description" content="{% block og_description %}{{ self.description() }}{% endblock %}">
+  <meta name="twitter:card" content="summary">
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
   <header class="site-header">
     <a class="brand" href="/">🛸 <strong>PSS Companion</strong></a>
+    <form class="global-search" method="get" action="/search">
+      <input type="search" name="q" placeholder="Search crew, items, rooms…" aria-label="Global search">
+    </form>
     <nav>
       <a href="/crew">Crew</a>
       <a href="/items">Items</a>
+      <a href="/rooms">Rooms</a>
+      <a href="/ships">Ships</a>
+      <a href="/collections">Collections</a>
       <a href="/fleets">Fleets</a>
       <a href="/players">Players</a>
     </nav>
@@ -21,8 +33,12 @@
     {% block content %}{% endblock %}
   </main>
   <footer class="site-footer">
-    <p>Unofficial fan site. Not affiliated with Savy Soda. Data from the public
-       Pixel Starships API, refreshed hourly (live data every 5 min).</p>
+    <p>
+      {% if data_age_min is not none %}
+        <span class="freshness">🟢 Game data updated {{ data_age_min }} min ago · live data every 5 min</span><br>
+      {% endif %}
+      Unofficial fan site. Not affiliated with Savy Soda. Data from the public Pixel Starships API.
+    </p>
   </footer>
 </body>
 </html>

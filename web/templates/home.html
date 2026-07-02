@@ -3,6 +3,9 @@
 {% block content %}
 <h1>Today in Pixel Starships</h1>
 {% if news %}<p class="news">📰 {{ news }}</p>{% endif %}
+{% if tournament %}
+  <p class="tournament {% if tournament.live %}live{% endif %}">🏆 {{ tournament.label }}</p>
+{% endif %}
 
 <div class="cards">
   <section class="card">

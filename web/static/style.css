@@ -44,9 +44,21 @@ h2 { font-size: 1.05rem; margin: 0 0 .5rem; color: var(--text-secondary); }
   border-bottom: 1px solid var(--border);
 }
 .site-header .brand { color: var(--text-primary); font-size: 1.05rem; }
-.site-header nav { display: flex; gap: 1rem; }
+.site-header nav { display: flex; gap: 1rem; flex-wrap: wrap; }
 .site-header nav a { color: var(--text-secondary); }
 .site-header nav a:hover { color: var(--text-primary); text-decoration: none; }
+
+.global-search { flex: 1 1 200px; max-width: 320px; }
+.global-search input {
+  width: 100%;
+  background: var(--surface-2); color: var(--text-primary);
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: .4rem .7rem; font-size: .9rem;
+}
+
+.freshness { color: var(--text-secondary); }
+.tournament { color: var(--text-secondary); }
+.tournament.live { color: #eda100; font-weight: 600; }
 
 .site-footer {
   max-width: 980px; margin: 0 auto; padding: 1rem 1.25rem 2rem;

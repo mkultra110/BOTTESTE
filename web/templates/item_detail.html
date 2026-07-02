@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{{ it.ItemDesignName }} — Items — PSS Companion{% endblock %}
+{% block description %}{{ it.Rarity }} {{ it.ItemType }}{% if summary %} · typical recent price {{ summary.lo | num }}–{{ summary.hi | num }} bux ({{ summary.trend }}){% endif %} · Pixel Starships item.{% endblock %}
 {% block content %}
 <p><a href="/items">← All items</a></p>
 <h1>{{ it.Rarity | rarity_icon }} {{ it.ItemDesignName }}</h1>
@@ -24,6 +25,14 @@
   {% if chart %}
   <section class="card card-wide">
     <h2>Market price — last {{ history | length }} days</h2>
+    {% if summary %}
+      <p>Typical recent price: <strong>{{ summary.lo | num }}–{{ summary.hi | num }} bux</strong>
+        · trend:
+        {% if summary.trend == "rising" %}📈 rising ({{ summary.drift }}% vs earlier this month)
+        {% elif summary.trend == "falling" %}📉 falling ({{ summary.drift }}%)
+        {% else %}➡️ stable{% endif %}
+      </p>
+    {% endif %}
     <figure class="viz-root">
       <svg viewBox="0 0 {{ chart.w }} {{ chart.h }}" role="img"
            aria-label="Price history: latest {{ chart.latest.value | num }}, range {{ chart.lo | num }} to {{ chart.hi | num }}">

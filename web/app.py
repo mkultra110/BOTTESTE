@@ -9,11 +9,14 @@ Run locally:
 from __future__ import annotations
 
 import asyncio
+import calendar
+import json
 import logging
 import os
 import sys
 import time
 from contextlib import asynccontextmanager
+from datetime import datetime, timedelta, timezone
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -57,6 +60,71 @@ async def cached(key: str, ttl: float, factory):
     return value
 
 
+# --- daily archive (liveops + fleet standings) ------------------------------
+# History cannot be backfilled, so snapshots run from day one. Stored as
+# JSON-lines, one file per dataset, deduped by UTC date.
+ARCHIVE_DIR = os.environ.get("PSS_ARCHIVE_DIR", os.path.join(os.getcwd(), "data", "archive"))
+
+
+def _archive_has(path: str, date: str) -> bool:
+    if not os.path.exists(path):
+        return False
+    try:
+        with open(path, "rb") as fh:
+            tail = fh.read()[-4096:].decode(errors="ignore")
+        return f'"date": "{date}"' in tail or f'"date":"{date}"' in tail
+    except OSError:
+        return False
+
+
+async def _archive_once() -> None:
+    os.makedirs(ARCHIVE_DIR, exist_ok=True)
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    ops_path = os.path.join(ARCHIVE_DIR, "liveops.jsonl")
+    fleets_path = os.path.join(ARCHIVE_DIR, "fleets.jsonl")
+    if not _archive_has(ops_path, today):
+        ops = await api.today_liveops()
+        with open(ops_path, "a") as fh:
+            fh.write(json.dumps({"date": today, "liveops": ops}) + "\n")
+        log.info("Archived liveops for %s", today)
+    if not _archive_has(fleets_path, today):
+        fleets = await api.top_alliances(take=100)
+        with open(fleets_path, "a") as fh:
+            fh.write(json.dumps({"date": today, "fleets": fleets}) + "\n")
+        log.info("Archived fleet standings for %s", today)
+
+
+async def _archive_loop() -> None:
+    while True:
+        try:
+            await _archive_once()
+        except Exception as exc:  # non-fatal; retried next cycle
+            log.warning("Archive snapshot failed: %s", exc)
+        await asyncio.sleep(6 * 3600)
+
+
+def tournament_info(now: datetime | None = None) -> dict:
+    """Tournament runs the last week of each month (7 days before month end)."""
+    now = now or datetime.now(timezone.utc)
+    last_day = calendar.monthrange(now.year, now.month)[1]
+    start = datetime(now.year, now.month, last_day, tzinfo=timezone.utc) - \
+        timedelta(days=6)
+    start = start.replace(hour=0, minute=0, second=0, microsecond=0)
+    end = datetime(now.year, now.month, last_day, 23, 59, 59, tzinfo=timezone.utc)
+    if now > end:  # already past: next month
+        month = now.month % 12 + 1
+        year = now.year + (1 if month == 1 else 0)
+        last_day = calendar.monthrange(year, month)[1]
+        start = datetime(year, month, last_day, tzinfo=timezone.utc) - \
+            timedelta(days=6)
+        start = start.replace(hour=0, minute=0, second=0, microsecond=0)
+    if now >= start:
+        days_left = (end - now).days
+        return {"live": True, "label": f"Tournament finals LIVE — ends in {days_left + 1}d"}
+    delta = start - now
+    return {"live": False, "label": f"Tournament finals in {delta.days}d {delta.seconds // 3600}h"}
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await api.start()
@@ -64,7 +132,9 @@ async def lifespan(app: FastAPI):
         await data.ensure_loaded()
     except Exception as exc:  # pragma: no cover - non fatal, retried on demand
         log.warning("Initial data load failed: %s", exc)
+    archive_task = asyncio.create_task(_archive_loop())
     yield
+    archive_task.cancel()
     await api.close()
 
 
@@ -81,6 +151,9 @@ templates.env.globals["now"] = time.time
 
 
 def render(request: Request, template: str, **ctx) -> HTMLResponse:
+    # Freshness is a product feature: every page shows how old the data is.
+    age_min = int((time.monotonic() - data._loaded_at) / 60) if data._loaded_at else None
+    ctx.setdefault("data_age_min", age_min)
     return templates.TemplateResponse(request, template, ctx)
 
 
@@ -101,7 +174,59 @@ async def home(request: Request):
     except ValueError:
         pass
     return render(request, "home.html", ops=ops, fleets=fleets, featured=featured,
-                  sale_item=sale_item, news=clean_text(ops.get("News")))
+                  sale_item=sale_item, news=clean_text(ops.get("News")),
+                  tournament=tournament_info())
+
+
+@app.get("/search", response_class=HTMLResponse)
+async def global_search(request: Request, q: str = ""):
+    """One search box across crew, items, rooms and ships."""
+    await data.ensure_loaded()
+    ql = q.lower().strip()
+    results: dict[str, list] = {"crew": [], "items": [], "rooms": [], "ships": []}
+    if ql:
+        results["crew"] = [c for c in data.characters.values()
+                           if ql in c.get("CharacterDesignName", "").lower()][:20]
+        results["items"] = [i for i in data.items.values()
+                            if ql in i.get("ItemDesignName", "").lower()][:20]
+        results["rooms"] = data.find_rooms(ql, limit=20)
+        results["ships"] = [s for s in data.ships.values()
+                            if ql in s.get("ShipDesignName", "").lower()][:20]
+    total = sum(len(v) for v in results.values())
+    return render(request, "search.html", q=q, results=results, total=total)
+
+
+@app.get("/rooms", response_class=HTMLResponse)
+async def rooms_page(request: Request, q: str = "", type: str = ""):
+    await data.ensure_loaded()
+    rooms = list(data.rooms.values())
+    if q:
+        rooms = [r for r in rooms if q.lower() in r.get("RoomName", "").lower()]
+    if type:
+        rooms = [r for r in rooms if r.get("RoomType") == type]
+    rooms.sort(key=data._room_sort_key)
+    types = sorted({r.get("RoomType", "") for r in data.rooms.values()})
+    return render(request, "rooms.html", rooms=rooms[:200], total=len(rooms),
+                  q=q, type=type, types=types)
+
+
+@app.get("/ships", response_class=HTMLResponse)
+async def ships_page(request: Request, q: str = ""):
+    await data.ensure_loaded()
+    ships = list(data.ships.values())
+    if q:
+        ships = [s for s in ships if q.lower() in s.get("ShipDesignName", "").lower()]
+    ships.sort(key=lambda s: (int(s.get("ShipLevel", 0) or 0), s.get("ShipDesignName", "")))
+    return render(request, "ships.html", ships=ships[:200], total=len(ships), q=q)
+
+
+@app.get("/collections", response_class=HTMLResponse)
+async def collections_page(request: Request):
+    await data.ensure_loaded()
+    colls = sorted(data.collections.values(), key=lambda c: c.get("CollectionName", ""))
+    members = {c["CollectionDesignId"]: data.crew_in_collection(c["CollectionDesignId"])
+               for c in colls}
+    return render(request, "collections.html", collections=colls, members=members)
 
 
 @app.get("/crew", response_class=HTMLResponse)
@@ -210,8 +335,21 @@ async def item_detail(request: Request, item_id: int):
         history = await cached(f"price:{item_id}", 3600, lambda: api.price_history(item_id))
     except PSSApiError:
         history = []
+    summary = None
+    if len(history) >= 7:
+        recent = [v for _, v in history[-7:]]
+        older = [v for _, v in history[:-7]] or recent
+        avg_recent = sum(recent) / len(recent)
+        avg_older = sum(older) / len(older)
+        drift = (avg_recent - avg_older) / avg_older * 100 if avg_older else 0
+        trend = "rising" if drift > 5 else "falling" if drift < -5 else "stable"
+        summary = {
+            "lo": min(recent), "hi": max(recent),
+            "trend": trend, "drift": round(drift),
+        }
     return render(request, "item_detail.html", it=it, history=history,
-                  chart=_price_chart(history), items_table=data.items)
+                  chart=_price_chart(history), summary=summary,
+                  items_table=data.items)
 
 
 @app.get("/fleets", response_class=HTMLResponse)

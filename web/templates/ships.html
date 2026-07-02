@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Ships — PSS Companion{% endblock %}
+{% block content %}
+<h1>Player ships <span class="muted">({{ total }})</span></h1>
+
+<form class="filters" method="get" action="/ships">
+  <input type="search" name="q" value="{{ q }}" placeholder="Search ships…" aria-label="Search ships">
+  <button type="submit">Filter</button>
+</form>
+
+<table>
+  <thead><tr><th>Ship</th><th class="num">Level</th><th class="num">Hull HP</th>
+    <th>Grid</th><th class="num">Upgrade cost</th><th class="num">Storage</th></tr></thead>
+  <tbody>
+  {% for s in ships %}
+    <tr>
+      <td>{{ s.ShipDesignName }}</td>
+      <td class="num">{{ s.ShipLevel }}</td>
+      <td class="num">{{ s.Hp | num }}</td>
+      <td>{{ s.Rows }}×{{ s.Columns }}</td>
+      <td class="num">{% if s.MineralCost and s.MineralCost != "0" %}{{ s.MineralCost | num }} ⛏️{% elif s.StarbuxCost and s.StarbuxCost != "0" %}{{ s.StarbuxCost | num }} 💰{% else %}—{% endif %}</td>
+      <td class="num">{{ s.MineralCapacity | num if s.MineralCapacity and s.MineralCapacity != "0" else "—" }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% if total > 200 %}<p class="muted">Showing first 200 — refine your search.</p>{% endif %}
+{% endblock %}

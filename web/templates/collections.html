@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Collections — PSS Companion{% endblock %}
+{% block content %}
+<h1>Crew collections <span class="muted">({{ collections | length }})</span></h1>
+
+<div class="cards">
+{% for c in collections %}
+  <section class="card">
+    <h2>🎖️ {{ c.CollectionName }}</h2>
+    <p class="muted">{{ c.CollectionDescription | clean }}</p>
+    <dl>
+      {% if c.AbilityName %}<dt>Ability</dt><dd>{{ c.AbilityName }}</dd>{% endif %}
+      <dt>Combo</dt><dd>{{ c.MinCombo }}–{{ c.MaxCombo }} crew</dd>
+      {% if c.BaseChance and c.BaseChance != "0" %}
+        <dt>Chance</dt><dd>{{ c.BaseChance }}%{% if c.StepChance and c.StepChance != "0" %} (+{{ c.StepChance }}%/crew){% endif %}</dd>
+      {% endif %}
+    </dl>
+    {% set mem = members.get(c.CollectionDesignId, []) %}
+    {% if mem %}
+      <p><strong>{{ mem | length }} crew:</strong>
+      {% for m in mem[:12] %}<a href="/crew/{{ m.CharacterDesignId }}">{{ m.CharacterDesignName }}</a>{% if not loop.last %}, {% endif %}{% endfor %}
+      {%- if mem | length > 12 %} +{{ mem | length - 12 }} more{% endif %}</p>
+    {% endif %}
+  </section>
+{% endfor %}
+</div>
+{% endblock %}
