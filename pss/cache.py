@@ -6,6 +6,7 @@ us resolve names <-> ids locally.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 import time
@@ -26,6 +27,7 @@ class GameData:
         self.api = api
         self.ttl = ttl
         self._loaded_at: float = 0.0
+        self._refresh_lock = asyncio.Lock()
 
         self.characters: dict[int, dict[str, str]] = {}
         self.items: dict[int, dict[str, str]] = {}
@@ -50,6 +52,22 @@ class GameData:
     async def ensure_loaded(self, force: bool = False) -> None:
         if not force and not self.is_stale:
             return
+        async with self._refresh_lock:
+            # Double-check: another coroutine may have refreshed while we waited.
+            if not force and not self.is_stale:
+                return
+            try:
+                await self._refresh()
+            except Exception:
+                if not self.characters:
+                    raise  # first load failed: nothing to serve, surface it
+                # Refresh failed but we still have a full previous catalogue —
+                # keep serving stale data and retry on the next request.
+                log.warning("Design-data refresh failed; serving stale data.",
+                            exc_info=True)
+                self._loaded_at = time.monotonic() - self.ttl + 300  # retry in 5 min
+
+    async def _refresh(self) -> None:
         log.info("Refreshing PSS design data ...")
         chars = await self.api.list_character_designs()
         items = await self.api.list_item_designs()

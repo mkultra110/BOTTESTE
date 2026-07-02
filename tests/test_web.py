@@ -1,4 +1,5 @@
 """Unit tests for pure web helpers (no server, no network)."""
+import json
 from datetime import datetime, timezone
 
 import web.app as webapp
@@ -52,7 +53,36 @@ def test_parse_roster_validates_and_dedupes():
     webapp.data.characters = {1: {"CharacterDesignId": "1"}, 2: {"CharacterDesignId": "2"}}
     assert webapp._parse_roster("1,2,2,abc,999") == [1, 2]
     assert webapp._parse_roster("") == []
+    # Unicode digits pass str.isdigit() but int() rejects them — must not crash.
+    assert webapp._parse_roster("²,1") == [1]
     webapp.data.characters = {}
+
+
+def test_archive_has_finds_date_on_huge_lines(tmp_path):
+    # A fleets snapshot line is ~85 KB; the date marker (written first) must
+    # still be found — a fixed-size tail read would miss it.
+    path = tmp_path / "fleets.jsonl"
+    big = {"date": "2026-07-02", "fleets": [{"AllianceName": "x" * 900}] * 100}
+    path.write_text(json.dumps(big) + "\n")
+    assert len(path.read_text()) > 50_000
+    assert webapp._archive_has(str(path), "2026-07-02") is True
+    assert webapp._archive_has(str(path), "2026-07-03") is False
+    assert webapp._archive_has(str(tmp_path / "missing.jsonl"), "2026-07-02") is False
+
+
+def test_offer_recurrence_matches_type_and_argument(tmp_path, monkeypatch):
+    path = tmp_path / "liveops.jsonl"
+    rows = [
+        {"date": "2026-06-01", "liveops": {"LimitedCatalogType": "Item", "LimitedCatalogArgument": "558"}},
+        {"date": "2026-06-15", "liveops": {"LimitedCatalogType": "Character", "LimitedCatalogArgument": "558"}},
+        {"date": "2026-07-01", "liveops": {"LimitedCatalogType": "Item", "LimitedCatalogArgument": "558"}},
+    ]
+    path.write_text("".join(json.dumps(r) + "\n" for r in rows))
+    monkeypatch.setattr(webapp, "ARCHIVE_DIR", str(tmp_path))
+    rec = webapp._offer_recurrence("Item", "558")
+    assert rec == {"times": 2, "tracked_since": "2026-06-01"}  # Character row excluded
+    assert webapp._offer_recurrence("Item", "999") is None
+    assert webapp._offer_recurrence(None, "558") is None
 
 
 def test_combos_for_roster_requires_both_partners():

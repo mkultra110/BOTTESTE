@@ -1,9 +1,10 @@
 """Helpers for turning raw PSS attributes into human-friendly text."""
 from __future__ import annotations
 
+import math
+import re
 from datetime import datetime, timezone
 from html import unescape
-import re
 
 RARITY_EMOJI = {
     "Common": "⚪",      # white circle
@@ -134,6 +135,8 @@ def num(value: str | int | float | None) -> str:
         f = float(value)
     except (TypeError, ValueError):
         return str(value or "?")
+    if not math.isfinite(f):  # int(NaN/inf) would raise
+        return str(value)
     if f == int(f):
         return f"{int(f):,}"
     return f"{f:,.2f}".rstrip("0").rstrip(".")

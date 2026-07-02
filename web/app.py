@@ -55,17 +55,24 @@ api = PSSApi(host=config.PSS_API_HOST, language=config.PSS_LANGUAGE,
 data = GameData(api, ttl=config.CACHE_TTL_SECONDS)
 
 # Small TTL cache for live (non-design) endpoints so we never hammer the API.
+# Per-key locks prevent a thundering herd: on a cold/expired key, one request
+# runs the factory while concurrent ones wait and reuse its result.
 _live_cache: dict[str, tuple[float, object]] = {}
+_live_locks: dict[str, asyncio.Lock] = {}
 
 
 async def cached(key: str, ttl: float, factory):
-    now = time.monotonic()
     hit = _live_cache.get(key)
-    if hit and now - hit[0] < ttl:
+    if hit and time.monotonic() - hit[0] < ttl:
         return hit[1]
-    value = await factory()
-    _live_cache[key] = (now, value)
-    return value
+    lock = _live_locks.setdefault(key, asyncio.Lock())
+    async with lock:
+        hit = _live_cache.get(key)  # re-check: another task may have filled it
+        if hit and time.monotonic() - hit[0] < ttl:
+            return hit[1]
+        value = await factory()
+        _live_cache[key] = (time.monotonic(), value)
+        return value
 
 
 # --- daily archive (liveops + fleet standings) ------------------------------
@@ -75,12 +82,18 @@ ARCHIVE_DIR = os.environ.get("PSS_ARCHIVE_DIR", os.path.join(os.getcwd(), "data"
 
 
 def _archive_has(path: str, date: str) -> bool:
+    """True if a snapshot for `date` is already archived.
+
+    Records put "date" first, so checking each line's head is enough — and
+    unlike a fixed-size tail read, it works even though a fleets line is
+    ~85 KB. Files grow one line per day, so the scan stays cheap.
+    """
     if not os.path.exists(path):
         return False
+    needles = (f'"date": "{date}"', f'"date":"{date}"')
     try:
-        with open(path, "rb") as fh:
-            tail = fh.read()[-4096:].decode(errors="ignore")
-        return f'"date": "{date}"' in tail or f'"date":"{date}"' in tail
+        with open(path, errors="ignore") as fh:
+            return any(n in line[:64] for line in fh for n in needles)
     except OSError:
         return False
 
@@ -149,8 +162,13 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="PSS Companion", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=os.path.join(WEB_DIR, "static")), name="static")
 
+import jinja2  # noqa: E402
+
 templates = Jinja2Templates(directory=os.path.join(WEB_DIR, "templates"))
-templates.env.filters["num"] = num
+# Missing attrs reach filters as jinja2.Undefined, which float() rejects with
+# UndefinedError rather than the TypeError num() handles — map those to "?".
+templates.env.filters["num"] = (
+    lambda v: "?" if isinstance(v, jinja2.Undefined) else num(v))
 templates.env.filters["clean"] = clean_text
 templates.env.filters["rarity_icon"] = rarity_icon
 templates.env.filters["ability"] = ability_name
@@ -234,9 +252,13 @@ def _crew_verdict(crew: dict[str, str]) -> dict | None:
     return {"stats": stats[:3], "best": best, "peer_count": len(peers), "rarity": rarity}
 
 
-def _offer_recurrence(cat_arg: str | None) -> dict | None:
-    """How often today's shop item appeared in our own LiveOps archive."""
-    if not cat_arg:
+def _offer_recurrence(cat_type: str | None, cat_arg: str | None) -> dict | None:
+    """How often today's shop offer appeared in our own LiveOps archive.
+
+    Matches on type AND argument (argument ids are only unique per type).
+    Synchronous file I/O — call via asyncio.to_thread from async routes.
+    """
+    if not cat_type or not cat_arg:
         return None
     path = os.path.join(ARCHIVE_DIR, "liveops.jsonl")
     if not os.path.exists(path):
@@ -249,7 +271,9 @@ def _offer_recurrence(cat_arg: str | None) -> dict | None:
                     row = json.loads(line)
                 except json.JSONDecodeError:
                     continue
-                if row.get("liveops", {}).get("LimitedCatalogArgument") == cat_arg:
+                ops = row.get("liveops", {})
+                if (ops.get("LimitedCatalogType") == cat_type
+                        and ops.get("LimitedCatalogArgument") == cat_arg):
                     seen.append(row.get("date", ""))
     except OSError:
         return None
@@ -313,7 +337,8 @@ async def home(request: Request):
         pass
     deal = await _item_deal_verdict(ops, sale_item)
     hero_verdict = _crew_verdict(featured["hero"]) if featured["hero"] else None
-    recurrence = _offer_recurrence(ops.get("LimitedCatalogArgument"))
+    recurrence = await asyncio.to_thread(
+        _offer_recurrence, ops.get("LimitedCatalogType"), ops.get("LimitedCatalogArgument"))
     return render(request, "home.html", ops=ops, fleets=fleets, featured=featured,
                   sale_item=sale_item, news=clean_text(ops.get("News")),
                   tournament=tournament_info(), deal=deal,
@@ -566,10 +591,12 @@ def _parse_roster(raw: str) -> list[int]:
     """Parse the roster query param into valid, deduped crew ids."""
     ids: list[int] = []
     for part in raw.split(","):
-        part = part.strip()
-        if not part.isdigit():
+        # int() directly: str.isdigit() accepts Unicode digits (e.g. "²")
+        # that int() rejects, which would crash here.
+        try:
+            cid = int(part.strip())
+        except ValueError:
             continue
-        cid = int(part)
         if cid in data.characters and cid not in ids:
             ids.append(cid)
     return ids[:MAX_ROSTER]

@@ -28,6 +28,9 @@ def test_num_handles_bad_values():
     assert num(None) == "?"
     assert num("") == "?"
     assert num("abc") == "abc"
+    # NaN/inf parse as floats but int() would raise — must not crash.
+    assert num("nan") == "nan"
+    assert num("inf") == "inf"
 
 
 def test_parse_pss_datetime_rejects_sentinels():
