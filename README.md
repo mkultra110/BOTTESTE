@@ -7,16 +7,29 @@ live data from the public PSS API: player search, fleet rankings, crew stats
 
 ## 🌐 The website
 
-Server-rendered FastAPI site (dark theme, mobile-friendly):
+Server-rendered FastAPI site (dark theme, mobile-friendly, real in-game
+pixel-art sprites throughout, OpenGraph cards so links unfurl in Discord):
 
-- **Home** — today's news, daily reward, shop offer, featured crew, top fleets
-- **/crew** — searchable/filterable crew database, sortable by stat;
-  detail pages with full stats, equip slots, collection and *all* prestige recipes
+- **Home** — today's news, tournament countdown, daily reward, shop offer
+  with an **automated deal verdict** (offer price vs recent market, stock,
+  recurrence from our own archive), featured crew with **stat percentiles
+  vs same-rarity peers**, top fleets
+- **/crew** — searchable/filterable/sortable crew database; detail pages
+  with stats-by-level table (progression curves), equip slots, collection,
+  and *all* prestige recipes in both directions
+- **/planner** — prestige planner: build your roster (state in the URL,
+  no account) and see every combo you can make, best rarity first
 - **/items** — searchable item database; detail pages with **30-day market
-  price chart**, crafting recipe links
-- **/fleets** — live top-100 fleet leaderboard with tournament stars & divisions
-- **/players** — player lookup (trophies, fleet, PvP record, last seen)
-- **/api/*** — free JSON API (crew, items, daily)
+  price chart + plain-language trend**, crafting links, crate contents
+- **/rooms, /ships, /collections** — always-current reference pages
+- **/fleets** — live top-100 leaderboard with badges, tournament stars &
+  divisions; per-fleet detail pages
+- **/players** — universal player lookup by exact name (trophies, fleet,
+  PvP W/L/D, account age, last seen)
+- **/search** — one box across crew, items, rooms and ships
+- **/api/*** — free JSON API (crew, items, daily); `/sitemap.xml` for SEO
+- daily **archive job** (LiveOps + fleet standings) powering recurrence
+  stats, growing from day one
 
 Run it locally:
 
