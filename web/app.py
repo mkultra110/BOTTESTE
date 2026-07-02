@@ -19,7 +19,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -32,6 +32,7 @@ from pss.formatting import (
     ability_name,
     clean_text,
     equipment_slots,
+    interpolate_stat,
     num,
     parse_pss_datetime,
     rarity_icon,
@@ -364,9 +365,34 @@ async def crew_detail(request: Request, char_id: int):
     collection = None
     if c.get("CollectionDesignId") not in (None, "", "0"):
         collection = data.collections.get(int(c["CollectionDesignId"]))
+
+    # Stat progression table: exact at levels 1 and 40, interpolated between.
+    def f(key: str) -> float:
+        try:
+            return float(c.get(key, 0) or 0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    progression = c.get("ProgressionType", "Linear")
+    levels = [1, 10, 20, 30, 40]
+    stat_rows = []
+    for label, base_key, final_key in (
+        ("HP", "Hp", "FinalHp"), ("Attack", "Attack", "FinalAttack"),
+        ("Repair", "Repair", "FinalRepair"),
+        ("Ability", "SpecialAbilityArgument", "SpecialAbilityFinalArgument"),
+    ):
+        base, final = f(base_key), f(final_key)
+        if final <= 0:
+            continue
+        stat_rows.append({
+            "label": label,
+            "values": [num(round(interpolate_stat(base, final, lv, progression), 1))
+                       for lv in levels],
+        })
     return render(request, "crew_detail.html", c=c, collection=collection,
                   to_recipes=to_recipes, from_recipes=from_recipes,
-                  char_name=data.char_name)
+                  char_name=data.char_name, levels=levels, stat_rows=stat_rows,
+                  progression=progression)
 
 
 @app.get("/items", response_class=HTMLResponse)
@@ -602,3 +628,27 @@ async def api_daily():
 @app.get("/healthz")
 async def healthz():
     return {"ok": True, "crew": len(data.characters), "items": len(data.items)}
+
+
+# --- SEO ---------------------------------------------------------------------
+@app.get("/robots.txt")
+async def robots(request: Request):
+    base = str(request.base_url).rstrip("/")
+    return PlainTextResponse(
+        f"User-agent: *\nAllow: /\nSitemap: {base}/sitemap.xml\n"
+    )
+
+
+@app.get("/sitemap.xml")
+async def sitemap(request: Request):
+    await data.ensure_loaded()
+    base = str(request.base_url).rstrip("/")
+    urls = ["/", "/crew", "/items", "/rooms", "/ships", "/collections",
+            "/fleets", "/players", "/planner"]
+    urls += [f"/crew/{cid}" for cid in data.characters]
+    urls += [f"/item/{iid}" for iid in data.items]
+    body = "".join(f"<url><loc>{base}{u}</loc></url>" for u in urls)
+    xml = ('<?xml version="1.0" encoding="UTF-8"?>'
+           '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+           f"{body}</urlset>")
+    return Response(content=xml, media_type="application/xml")

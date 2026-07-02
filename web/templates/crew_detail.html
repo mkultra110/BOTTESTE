@@ -37,6 +37,21 @@
   </section>
 </div>
 
+{% if stat_rows %}
+<section>
+  <h2>📈 Stats by level <span class="muted">({{ progression }} progression)</span></h2>
+  <table>
+    <thead><tr><th>Stat</th>{% for lv in levels %}<th class="num">Lv {{ lv }}</th>{% endfor %}</tr></thead>
+    <tbody>
+      {% for row in stat_rows %}
+        <tr><td>{{ row.label }}</td>{% for v in row['values'] %}<td class="num">{{ v }}</td>{% endfor %}</tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="muted">Levels 1 and 40 are exact game values; intermediate levels follow the design's progression curve.</p>
+</section>
+{% endif %}
+
 {% if to_recipes %}
 <section>
   <h2>⚗️ How to get {{ c.CharacterDesignName }} ({{ to_recipes | length }} recipes)</h2>

@@ -80,6 +80,24 @@ def clean_text(raw: str | None) -> str:
     return text.strip()
 
 
+def interpolate_stat(base: float, final: float, level: int,
+                     progression: str = "Linear", max_level: int = 40) -> float:
+    """Crew stat at a given level.
+
+    Levels 1 and ``max_level`` are exact (the API's base and Final values);
+    intermediate levels follow the design's ProgressionType curve
+    (Linear, EaseIn = p², EaseOut = 1-(1-p)²), the formula used across
+    PSS community tools.
+    """
+    level = max(1, min(level, max_level))
+    p = (level - 1) / (max_level - 1)
+    if progression == "EaseIn":
+        p = p * p
+    elif progression == "EaseOut":
+        p = 1 - (1 - p) ** 2
+    return base + (final - base) * p
+
+
 _SPARK_CHARS = "▁▂▃▄▅▆▇█"
 
 

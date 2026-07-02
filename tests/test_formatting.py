@@ -4,6 +4,7 @@ from pss.formatting import (
     clamp,
     clean_text,
     equipment_slots,
+    interpolate_stat,
     num,
     parse_pss_datetime,
     rarity_icon,
@@ -77,6 +78,24 @@ def test_clamp_truncates_with_ellipsis():
     out = clamp("x" * 2000, 100)
     assert len(out) <= 100
     assert out.endswith("…")
+
+
+def test_interpolate_stat_endpoints_exact():
+    # Level 1 = base, level 40 = final, regardless of progression curve.
+    for prog in ("Linear", "EaseIn", "EaseOut", "Unknown"):
+        assert interpolate_stat(2, 10, 1, prog) == 2
+        assert interpolate_stat(2, 10, 40, prog) == 10
+
+
+def test_interpolate_stat_curves():
+    # Midpoint (level 20.5 ~ p=0.5): Linear=6, EaseIn<6<EaseOut for rising stat.
+    lin = interpolate_stat(2, 10, 20, "Linear")
+    ein = interpolate_stat(2, 10, 20, "EaseIn")
+    eout = interpolate_stat(2, 10, 20, "EaseOut")
+    assert ein < lin < eout
+    # clamped outside range
+    assert interpolate_stat(2, 10, 0, "Linear") == 2
+    assert interpolate_stat(2, 10, 99, "Linear") == 10
 
 
 def test_sparkline():
