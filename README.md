@@ -117,6 +117,13 @@ pytest -q
 
 CI runs them on Python 3.10–3.12 (`.github/workflows/ci.yml`).
 
+To verify the whole data path against the **live** PSS API (no Discord
+connection needed) before deploying:
+
+```bash
+python tests/smoke_live.py
+```
+
 ---
 
 ## 🔐 Authenticated features
