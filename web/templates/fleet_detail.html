@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{{ a.AllianceName | clean }} — Fleet — PSS Companion{% endblock %}
+{% block description %}#{{ rank }} fleet · {{ a.Trophy | num }} trophies · {{ a.NumberOfMembers }} members{% if a.Score and a.Score != "0" %} · {{ a.Score | num }} tournament stars{% endif %}.{% endblock %}
+{% block content %}
+<p><a href="/fleets">← Top 100 fleets</a></p>
+<h1>🚀 {{ a.AllianceName | clean }} <span class="muted">#{{ rank }}</span></h1>
+{% if a.AllianceDescription %}<p class="muted">{{ a.AllianceDescription | clean }}</p>{% endif %}
+
+<div class="cards">
+  <section class="card">
+    <h2>Standing</h2>
+    <dl>
+      <dt>Rank</dt><dd>#{{ rank }}</dd>
+      <dt>Trophies</dt><dd>{{ a.Trophy | num }}</dd>
+      {% if a.Score and a.Score != "0" %}<dt>Tournament stars</dt><dd>{{ a.Score | num }}</dd>{% endif %}
+      {% if a.ChampionshipScore and a.ChampionshipScore != "0" %}<dt>Championship</dt><dd>{{ a.ChampionshipScore | num }}</dd>{% endif %}
+      <dt>Division</dt><dd>{{ {"1":"A","2":"B","3":"C","4":"D"}.get(a.DivisionDesignId, "—") }}</dd>
+    </dl>
+  </section>
+  <section class="card">
+    <h2>Membership</h2>
+    <dl>
+      <dt>Members</dt><dd>{{ a.NumberOfMembers }}{% if a.NumberOfApprovedMembers %} ({{ a.NumberOfApprovedMembers }} approved){% endif %}</dd>
+      {% if a.MinTrophyRequired %}<dt>Min trophies</dt><dd>{{ a.MinTrophyRequired | num }}</dd>{% endif %}
+      <dt>Approval</dt><dd>{{ "Required" if a.RequiresApproval == "true" else "Open" }}</dd>
+    </dl>
+  </section>
+</div>
+<p class="muted">Member rosters need an authenticated game token and aren't shown here.</p>
+{% endblock %}

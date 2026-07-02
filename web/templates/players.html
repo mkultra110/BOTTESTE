@@ -19,10 +19,12 @@
   <h2>👤 {{ user.Name }}</h2>
   <dl>
     <dt>Trophies</dt><dd>{{ user.Trophy | num }}{% if user.HighestTrophy %} (best {{ user.HighestTrophy | num }}){% endif %}</dd>
-    {% if user.AllianceName %}<dt>Fleet</dt><dd>{{ user.AllianceName }}</dd>{% endif %}
-    {% if user.PVPAttackWins is defined %}<dt>Attacks W/L</dt><dd>{{ user.PVPAttackWins | num }} / {{ user.PVPAttackLosses | num }}</dd>{% endif %}
-    {% if user.PVPDefenceWins is defined %}<dt>Defence W/L</dt><dd>{{ user.PVPDefenceWins | num }} / {{ user.PVPDefenceLosses | num }}</dd>{% endif %}
+    {% if user.AllianceName %}<dt>Fleet</dt><dd>{{ user.AllianceName }}{% if user.AllianceMembership and user.AllianceMembership != "None" %} · {{ user.AllianceMembership }}{% endif %}</dd>{% endif %}
+    {% if user.PVPAttackWins is defined %}<dt>Attacks W/L/D</dt><dd>{{ user.PVPAttackWins | num }} / {{ user.PVPAttackLosses | num }}{% if user.PVPAttackDraws is defined %} / {{ user.PVPAttackDraws | num }}{% endif %}</dd>{% endif %}
+    {% if user.PVPDefenceWins is defined %}<dt>Defence W/L/D</dt><dd>{{ user.PVPDefenceWins | num }} / {{ user.PVPDefenceLosses | num }}{% if user.PVPDefenceDraws is defined %} / {{ user.PVPDefenceDraws | num }}{% endif %}</dd>{% endif %}
     {% if user.CrewDonated is defined %}<dt>Crew donated/received</dt><dd>{{ user.CrewDonated | num }} / {{ user.CrewReceived | num }}</dd>{% endif %}
+    {% if user.RaceType and user.RaceType != "Unknown" %}<dt>Race</dt><dd>{{ user.RaceType }}</dd>{% endif %}
+    <dt>Account created</dt><dd>{{ user._created }}</dd>
     <dt>Last seen</dt><dd>{{ user._last_seen }}</dd>
   </dl>
 </section>

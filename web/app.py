@@ -358,6 +358,22 @@ async def fleets(request: Request):
     return render(request, "fleets.html", fleets=top)
 
 
+@app.get("/fleet/{alliance_id}", response_class=HTMLResponse)
+async def fleet_detail(request: Request, alliance_id: int):
+    top = await cached("fleets100", 300, lambda: api.top_alliances(take=100))
+    by_id = {int(a.get("AllianceId", 0) or 0): (i + 1, a) for i, a in enumerate(top)}
+    hit = by_id.get(alliance_id)
+    if not hit:
+        raise HTTPException(404, "Fleet not in the current top 100")
+    rank, a = hit
+    return render(request, "fleet_detail.html", a=a, rank=rank)
+
+
+def _fmt_dt(raw: str | None) -> str:
+    dt = parse_pss_datetime(raw)
+    return dt.strftime("%Y-%m-%d") if dt else "unknown"
+
+
 @app.get("/players", response_class=HTMLResponse)
 async def players(request: Request, q: str = ""):
     user = None
@@ -367,8 +383,9 @@ async def players(request: Request, q: str = ""):
             users = await api.search_users(q)
             user = users[0] if users else None
             if user:
-                dt = parse_pss_datetime(user.get("LastHeartBeatDate") or user.get("LastLoginDate"))
-                user["_last_seen"] = dt.strftime("%Y-%m-%d %H:%M UTC") if dt else "unknown"
+                seen = parse_pss_datetime(user.get("LastHeartBeatDate") or user.get("LastLoginDate"))
+                user["_last_seen"] = seen.strftime("%Y-%m-%d %H:%M UTC") if seen else "unknown"
+                user["_created"] = _fmt_dt(user.get("CreationDate"))
         except PSSApiError as exc:
             error = str(exc)
     return render(request, "players.html", q=q, user=user, error=error)
