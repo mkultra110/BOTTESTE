@@ -1,9 +1,38 @@
-# 🚀 Pixel Starships Discord Bot
+# 🚀 Pixel Starships Companion — Discord bot + website
 
-An unofficial companion **Discord bot** for [Pixel Starships](https://www.pixelstarships.com)
-(by Savy Soda). It reads live data from the public PSS API and exposes it
-through clean Discord slash commands: player search, fleet rankings, crew
-stats & prestige recipes, item lookups and the daily offers.
+An unofficial companion **Discord bot and website** for
+[Pixel Starships](https://www.pixelstarships.com) (by Savy Soda). Both read
+live data from the public PSS API: player search, fleet rankings, crew stats
+& prestige recipes, item lookups with market price history, and daily offers.
+
+## 🌐 The website
+
+Server-rendered FastAPI site (dark theme, mobile-friendly):
+
+- **Home** — today's news, daily reward, shop offer, featured crew, top fleets
+- **/crew** — searchable/filterable crew database, sortable by stat;
+  detail pages with full stats, equip slots, collection and *all* prestige recipes
+- **/items** — searchable item database; detail pages with **30-day market
+  price chart**, crafting recipe links
+- **/fleets** — live top-100 fleet leaderboard with tournament stars & divisions
+- **/players** — player lookup (trophies, fleet, PvP record, last seen)
+- **/api/*** — free JSON API (crew, items, daily)
+
+Run it locally:
+
+```bash
+pip install -r requirements-web.txt
+uvicorn web.app:app --reload      # http://127.0.0.1:8000
+```
+
+On the VPS (after the bot install below):
+
+```bash
+.venv/bin/pip install -r requirements-web.txt
+sudo cp deploy/pss-web.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now pss-web
+# then put nginx/caddy in front of 127.0.0.1:8300 for HTTPS
+```
 
 > Not affiliated with or endorsed by Savy Soda. This bot only **reads**
 > public game data — it does **not** automate gameplay.

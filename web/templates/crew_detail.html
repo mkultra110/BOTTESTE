@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}{{ c.CharacterDesignName }} — Crew — PSS Companion{% endblock %}
+{% block content %}
+<p><a href="/crew">← All crew</a></p>
+<h1>{{ c.Rarity | rarity_icon }} {{ c.CharacterDesignName }}</h1>
+<p class="muted">{{ c.CharacterDesignDescription | clean }}</p>
+
+<div class="cards">
+  <section class="card">
+    <h2>Profile</h2>
+    <dl>
+      <dt>Rarity</dt><dd>{{ c.Rarity }}</dd>
+      {% if c.GenderType and c.GenderType != "Unknown" %}<dt>Gender</dt><dd>{{ c.GenderType }}</dd>{% endif %}
+      {% if c.RaceType and c.RaceType != "Unknown" %}<dt>Race</dt><dd>{{ c.RaceType }}</dd>{% endif %}
+      {% if c.SpecialAbilityType and c.SpecialAbilityType != "None" %}
+        <dt>Ability</dt><dd>{{ c.SpecialAbilityType | ability }} ({{ c.SpecialAbilityFinalArgument | num }})</dd>
+      {% endif %}
+      {% if c.EquipmentMask %}<dt>Equip slots</dt><dd>{{ c.EquipmentMask | slots }}</dd>{% endif %}
+      {% if c.TrainingCapacity and c.TrainingCapacity != "0" %}<dt>Training cap</dt><dd>{{ c.TrainingCapacity | num }}</dd>{% endif %}
+      {% if collection %}<dt>Collection</dt><dd>{{ collection.CollectionName }}</dd>{% endif %}
+    </dl>
+  </section>
+
+  <section class="card">
+    <h2>Max stats</h2>
+    <dl class="stats">
+      <dt>HP</dt><dd>{{ c.FinalHp | num }}</dd>
+      <dt>Attack</dt><dd>{{ c.FinalAttack | num }}</dd>
+      <dt>Repair</dt><dd>{{ c.FinalRepair | num }}</dd>
+      <dt>Pilot</dt><dd>{{ c.FinalPilot | num }}</dd>
+      <dt>Engine</dt><dd>{{ c.FinalEngine | num }}</dd>
+      <dt>Weapon</dt><dd>{{ c.FinalWeapon | num }}</dd>
+      <dt>Science</dt><dd>{{ c.FinalScience | num }}</dd>
+      <dt>Research</dt><dd>{{ c.FinalResearch | num }}</dd>
+    </dl>
+  </section>
+</div>
+
+{% if to_recipes %}
+<section>
+  <h2>⚗️ How to get {{ c.CharacterDesignName }} ({{ to_recipes | length }} recipes)</h2>
+  <ul class="recipes">
+    {% for r in to_recipes[:60] %}
+      <li><a href="/crew/{{ r.CharacterDesignId1 }}">{{ char_name(r.CharacterDesignId1) }}</a>
+        ➕ <a href="/crew/{{ r.CharacterDesignId2 }}">{{ char_name(r.CharacterDesignId2) }}</a></li>
+    {% endfor %}
+  </ul>
+  {% if to_recipes | length > 60 %}<p class="muted">Showing 60 of {{ to_recipes | length }}.</p>{% endif %}
+</section>
+{% endif %}
+
+{% if from_recipes %}
+<section>
+  <h2>⚗️ Prestiges into ({{ from_recipes | length }} combos)</h2>
+  <ul class="recipes">
+    {% for r in from_recipes[:60] %}
+      <li>with <a href="/crew/{{ r.CharacterDesignId2 if r.CharacterDesignId1 == c.CharacterDesignId else r.CharacterDesignId1 }}">{{ char_name(r.CharacterDesignId2 if r.CharacterDesignId1 == c.CharacterDesignId else r.CharacterDesignId1) }}</a>
+        → <a href="/crew/{{ r.ToCharacterDesignId }}">{{ char_name(r.ToCharacterDesignId) }}</a></li>
+    {% endfor %}
+  </ul>
+  {% if from_recipes | length > 60 %}<p class="muted">Showing 60 of {{ from_recipes | length }}.</p>{% endif %}
+</section>
+{% endif %}
+{% endblock %}

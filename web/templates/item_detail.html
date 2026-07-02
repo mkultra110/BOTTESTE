@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}{{ it.ItemDesignName }} — Items — PSS Companion{% endblock %}
+{% block content %}
+<p><a href="/items">← All items</a></p>
+<h1>{{ it.Rarity | rarity_icon }} {{ it.ItemDesignName }}</h1>
+<p class="muted">{{ it.ItemDesignDescription | clean }}</p>
+
+<div class="cards">
+  <section class="card">
+    <h2>Details</h2>
+    <dl>
+      <dt>Rarity</dt><dd>{{ it.Rarity }}</dd>
+      <dt>Type</dt><dd>{{ it.ItemType }}{% if it.ItemSubType and it.ItemSubType != "None" %} · {{ it.ItemSubType }}{% endif %}</dd>
+      {% if it.EnhancementType and it.EnhancementType != "None" %}
+        <dt>Bonus</dt><dd>{{ it.EnhancementType }} +{{ it.EnhancementValue }}</dd>
+      {% elif it.ModuleType and it.ModuleType != "None" %}
+        <dt>Effect</dt><dd>{{ it.ModuleType }} ({{ it.ModuleArgument | num }})</dd>
+      {% endif %}
+      {% if it.MarketPrice and it.MarketPrice != "0" %}<dt>Savy value</dt><dd>{{ it.MarketPrice | num }} 💰</dd>{% endif %}
+      {% if it.FairPrice and it.FairPrice != "0" %}<dt>Fair price</dt><dd>{{ it.FairPrice | num }} 💰</dd>{% endif %}
+    </dl>
+  </section>
+
+  {% if chart %}
+  <section class="card card-wide">
+    <h2>Market price — last {{ history | length }} days</h2>
+    <figure class="viz-root">
+      <svg viewBox="0 0 {{ chart.w }} {{ chart.h }}" role="img"
+           aria-label="Price history: latest {{ chart.latest.value | num }}, range {{ chart.lo | num }} to {{ chart.hi | num }}">
+        {# recessive grid + y labels #}
+        {% for g in chart.grid %}
+          <line x1="52" y1="{{ g.y }}" x2="{{ chart.w - 12 }}" y2="{{ g.y }}" class="gridline"/>
+          <text x="46" y="{{ g.y + 4 }}" class="axis-label" text-anchor="end">{{ g.label }}</text>
+        {% endfor %}
+        {# 2px data line #}
+        <path d="{{ chart.path }}" class="series-line" fill="none"/>
+        {# direct label on the latest point #}
+        <circle cx="{{ chart.latest.x }}" cy="{{ chart.latest.y }}" r="4" class="series-dot"/>
+        <text x="{{ chart.latest.x - 6 }}" y="{{ chart.label_y }}" class="value-label" text-anchor="end">{{ chart.latest.value | num }} 💰</text>
+        {# per-point hover targets with tooltips #}
+        {% for p in chart.points %}
+          <g class="hit">
+            <circle cx="{{ p.x }}" cy="{{ p.y }}" r="10" fill="transparent">
+              <title>{{ p.date }}: {{ p.value | num }} starbux</title>
+            </circle>
+            <circle cx="{{ p.x }}" cy="{{ p.y }}" r="2.5" class="series-dot hover-dot"/>
+          </g>
+        {% endfor %}
+      </svg>
+      <figcaption class="muted">Daily average sale price (starbux). Hover a point for the date.</figcaption>
+    </figure>
+    <details>
+      <summary>Data table</summary>
+      <table>
+        <thead><tr><th>Date</th><th class="num">Price</th></tr></thead>
+        <tbody>
+          {% for d, v in history %}
+            <tr><td>{{ d[:10] }}</td><td class="num">{{ v | num }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  {% elif history is defined %}
+  <section class="card"><h2>Market price</h2><p class="muted">No trading history — this item may not be marketable.</p></section>
+  {% endif %}
+
+  {% if it.Ingredients %}
+  <section class="card">
+    <h2>🧪 Crafted from</h2>
+    <ul>
+      {% for chunk in it.Ingredients.split("|") %}
+        {% set entry = chunk.split(":")[-1] %}
+        {% set iid = entry.split("x")[0] %}
+        {% set qty = entry.split("x")[1] if "x" in entry else "1" %}
+        {% set ing = items_table.get(iid | int) %}
+        <li>{{ qty }}× {% if ing %}<a href="/item/{{ iid }}">{{ ing.ItemDesignName }}</a>{% else %}#{{ iid }}{% endif %}</li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

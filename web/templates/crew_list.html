@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Crew — PSS Companion{% endblock %}
+{% block content %}
+<h1>Crew <span class="muted">({{ total }})</span></h1>
+
+<form class="filters" method="get" action="/crew">
+  <input type="search" name="q" value="{{ q }}" placeholder="Search crew…" aria-label="Search crew">
+  <select name="rarity" aria-label="Rarity">
+    <option value="">All rarities</option>
+    {% for r in rarities %}<option value="{{ r }}" {% if r == rarity %}selected{% endif %}>{{ r }}</option>{% endfor %}
+  </select>
+  <select name="sort" aria-label="Sort">
+    {% for key, label in [("name","Name"),("hp","HP"),("attack","Attack"),("repair","Repair"),("ability","Ability")] %}
+      <option value="{{ key }}" {% if key == sort %}selected{% endif %}>Sort: {{ label }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit">Filter</button>
+</form>
+
+<table>
+  <thead><tr><th>Crew</th><th>Rarity</th><th>Ability</th>
+    <th class="num">HP</th><th class="num">ATK</th><th class="num">RPR</th><th class="num">ABL</th></tr></thead>
+  <tbody>
+  {% for c in crew %}
+    <tr>
+      <td><a href="/crew/{{ c.CharacterDesignId }}">{{ c.Rarity | rarity_icon }} {{ c.CharacterDesignName }}</a></td>
+      <td>{{ c.Rarity }}</td>
+      <td>{{ c.SpecialAbilityType | ability }}</td>
+      <td class="num">{{ c.FinalHp | num }}</td>
+      <td class="num">{{ c.FinalAttack | num }}</td>
+      <td class="num">{{ c.FinalRepair | num }}</td>
+      <td class="num">{{ c.SpecialAbilityFinalArgument | num }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% if total > 200 %}<p class="muted">Showing first 200 — refine your search.</p>{% endif %}
+{% endblock %}

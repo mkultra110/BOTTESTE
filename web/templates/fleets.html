@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Top 100 fleets — PSS Companion{% endblock %}
+{% block content %}
+<h1>Top 100 fleets</h1>
+<table>
+  <thead><tr><th>#</th><th>Fleet</th><th class="num">Trophies</th><th class="num">Stars</th><th>Div</th><th class="num">Members</th><th class="num">Min 🏆</th></tr></thead>
+  <tbody>
+  {% for f in fleets %}
+    <tr>
+      <td>{{ loop.index }}</td>
+      <td>{{ f.AllianceName | clean }}</td>
+      <td class="num">{{ f.Trophy | num }}</td>
+      <td class="num">{{ f.Score | num if f.Score and f.Score != "0" else "—" }}</td>
+      <td>{{ {"1":"A","2":"B","3":"C","4":"D"}.get(f.DivisionDesignId, "—") }}</td>
+      <td class="num">{{ f.NumberOfMembers }}</td>
+      <td class="num">{{ f.MinTrophyRequired | num }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

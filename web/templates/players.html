@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Player search — PSS Companion{% endblock %}
+{% block content %}
+<h1>Player search</h1>
+<form class="filters" method="get" action="/players">
+  <input type="search" name="q" value="{{ q }}" placeholder="Exact in-game name…" aria-label="Player name">
+  <button type="submit">Search</button>
+</form>
+<p class="muted">The game API matches the exact player name (case-insensitive).</p>
+
+{% if error %}<p class="error">⚠️ {{ error }}</p>{% endif %}
+
+{% if q and not user and not error %}
+  <p>No player named “{{ q }}”. Check the exact spelling.</p>
+{% endif %}
+
+{% if user %}
+<section class="card">
+  <h2>👤 {{ user.Name }}</h2>
+  <dl>
+    <dt>Trophies</dt><dd>{{ user.Trophy | num }}{% if user.HighestTrophy %} (best {{ user.HighestTrophy | num }}){% endif %}</dd>
+    {% if user.AllianceName %}<dt>Fleet</dt><dd>{{ user.AllianceName }}</dd>{% endif %}
+    {% if user.PVPAttackWins is defined %}<dt>Attacks W/L</dt><dd>{{ user.PVPAttackWins | num }} / {{ user.PVPAttackLosses | num }}</dd>{% endif %}
+    {% if user.PVPDefenceWins is defined %}<dt>Defence W/L</dt><dd>{{ user.PVPDefenceWins | num }} / {{ user.PVPDefenceLosses | num }}</dd>{% endif %}
+    {% if user.CrewDonated is defined %}<dt>Crew donated/received</dt><dd>{{ user.CrewDonated | num }} / {{ user.CrewReceived | num }}</dd>{% endif %}
+    <dt>Last seen</dt><dd>{{ user._last_seen }}</dd>
+  </dl>
+</section>
+{% endif %}
+{% endblock %}

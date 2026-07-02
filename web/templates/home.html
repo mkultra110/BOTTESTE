@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}PSS Companion — Today in Pixel Starships{% endblock %}
+{% block content %}
+<h1>Today in Pixel Starships</h1>
+{% if news %}<p class="news">📰 {{ news }}</p>{% endif %}
+
+<div class="cards">
+  <section class="card">
+    <h2>🎁 Daily reward</h2>
+    <p>{{ ops.get("DailyRewardArgument") | num }} {{ ops.get("DailyRewardType", "?") }}</p>
+  </section>
+
+  {% if sale_item %}
+  <section class="card">
+    <h2>🛒 Shop offer</h2>
+    <p><a href="/item/{{ sale_item.ItemDesignId }}">{{ sale_item.ItemDesignName }}</a>
+       — {{ ops.get("LimitedCatalogCurrencyAmount") | num }} {{ ops.get("LimitedCatalogCurrencyType") }}</p>
+    <p class="muted">{{ ops.get("LimitedCatalogQuantity") }} in stock today</p>
+  </section>
+  {% endif %}
+
+  {% if featured.hero %}
+  <section class="card">
+    <h2>🧑‍🚀 Hero crew today</h2>
+    <p><a href="/crew/{{ featured.hero.CharacterDesignId }}">{{ featured.hero.Rarity | rarity_icon }} {{ featured.hero.CharacterDesignName }}</a></p>
+    {% if featured.common %}
+    <p class="muted">Daily crew: <a href="/crew/{{ featured.common.CharacterDesignId }}">{{ featured.common.CharacterDesignName }}</a></p>
+    {% endif %}
+  </section>
+  {% endif %}
+</div>
+
+<section>
+  <h2>🚀 Top fleets right now</h2>
+  <table>
+    <thead><tr><th>#</th><th>Fleet</th><th class="num">Trophies</th><th class="num">Stars</th><th>Div</th><th class="num">Members</th></tr></thead>
+    <tbody>
+    {% for f in fleets %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ f.AllianceName | clean }}</td>
+        <td class="num">{{ f.Trophy | num }}</td>
+        <td class="num">{{ f.Score | num if f.Score and f.Score != "0" else "—" }}</td>
+        <td>{{ {"1":"A","2":"B","3":"C","4":"D"}.get(f.DivisionDesignId, "—") }}</td>
+        <td class="num">{{ f.NumberOfMembers }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p><a href="/fleets">Full top 100 →</a></p>
+</section>
+{% endblock %}
