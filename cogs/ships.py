@@ -74,8 +74,20 @@ class Ships(commands.Cog):
                 costs.append(f"{num(v)} {label}")
         if costs:
             embed.add_field(name="💰 Upgrade cost", value=", ".join(costs), inline=True)
-        if ship.get("MaxDsp") and ship["MaxDsp"] != "0":
-            embed.add_field(name="Max power (DSP)", value=num(ship["MaxDsp"]), inline=True)
+        if ship.get("UpgradeTime") and ship["UpgradeTime"] != "0":
+            embed.add_field(name="⏳ Upgrade time", value=_fmt_time(ship["UpgradeTime"]), inline=True)
+        if ship.get("EquipmentCapacity") and ship["EquipmentCapacity"] != "0":
+            embed.add_field(name="🎽 Power orbs", value=num(ship["EquipmentCapacity"]), inline=True)
+
+        storage = []
+        for key, label in (("MineralCapacity", "Mineral"), ("GasCapacity", "Gas")):
+            v = ship.get(key)
+            if v and v != "0":
+                storage.append(f"{num(v)} {label}")
+        if storage:
+            embed.add_field(name="📦 Storage", value=", ".join(storage), inline=True)
+        if ship.get("Lives") and ship["Lives"] != "0":
+            embed.add_field(name="❤️ Lives", value=ship["Lives"], inline=True)
 
         embed.set_footer(text=f"Ship ID {ship.get('ShipDesignId', '?')}")
         await interaction.followup.send(embed=embed)
