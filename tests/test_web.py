@@ -48,6 +48,25 @@ def test_percentile_top():
     assert webapp._percentile_top([], 5.0) == 100     # no peers
 
 
+def test_parse_roster_validates_and_dedupes():
+    webapp.data.characters = {1: {"CharacterDesignId": "1"}, 2: {"CharacterDesignId": "2"}}
+    assert webapp._parse_roster("1,2,2,abc,999") == [1, 2]
+    assert webapp._parse_roster("") == []
+    webapp.data.characters = {}
+
+
+def test_combos_for_roster_requires_both_partners():
+    recipes = {
+        1: [{"CharacterDesignId1": "1", "CharacterDesignId2": "2", "ToCharacterDesignId": "10"},
+            {"CharacterDesignId1": "1", "CharacterDesignId2": "3", "ToCharacterDesignId": "11"}],
+        2: [{"CharacterDesignId1": "1", "CharacterDesignId2": "2", "ToCharacterDesignId": "10"}],
+    }
+    combos = webapp._combos_for_roster([1, 2], recipes)
+    # 1+3 is impossible (3 not owned); 1+2 dedupes to a single combo.
+    assert len(combos) == 1
+    assert combos[0] == {"a": 1, "b": 2, "to": 10}
+
+
 def test_crew_verdict_uses_same_rarity_peers():
     webapp.data.characters = {
         1: {"CharacterDesignId": "1", "Rarity": "Hero", "FinalAttack": "10",

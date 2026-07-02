@@ -491,6 +491,96 @@ async def players(request: Request, q: str = ""):
     return render(request, "players.html", q=q, user=user, error=error)
 
 
+# --- prestige planner --------------------------------------------------------
+MAX_ROSTER = 40
+
+
+def _parse_roster(raw: str) -> list[int]:
+    """Parse the roster query param into valid, deduped crew ids."""
+    ids: list[int] = []
+    for part in raw.split(","):
+        part = part.strip()
+        if not part.isdigit():
+            continue
+        cid = int(part)
+        if cid in data.characters and cid not in ids:
+            ids.append(cid)
+    return ids[:MAX_ROSTER]
+
+
+def _combos_for_roster(roster: list[int],
+                       recipes_by_crew: dict[int, list[dict[str, str]]]) -> list[dict]:
+    """All prestige results attainable with pairs from the roster.
+
+    ``recipes_by_crew[cid]`` holds PrestigeCharacterFrom(cid) rows; every row
+    contains cid itself plus its partner. A combo is attainable when the
+    partner is also in the roster. Deduped by (pair, target).
+    """
+    roster_set = set(roster)
+    seen: set[tuple[frozenset[int], int]] = set()
+    combos: list[dict] = []
+    for cid in roster:
+        for r in recipes_by_crew.get(cid, []):
+            try:
+                a = int(r.get("CharacterDesignId1", 0))
+                b = int(r.get("CharacterDesignId2", 0))
+                to = int(r.get("ToCharacterDesignId", 0))
+            except (TypeError, ValueError):
+                continue
+            if a not in roster_set or b not in roster_set:
+                continue
+            key = (frozenset((a, b)), to)
+            if key in seen:
+                continue
+            seen.add(key)
+            combos.append({"a": a, "b": b, "to": to})
+    return combos
+
+
+RARITY_ORDER = {"Legendary": 0, "Special": 1, "Hero": 2, "Epic": 3,
+                "Unique": 4, "Elite": 5, "Common": 6}
+
+
+@app.get("/planner", response_class=HTMLResponse)
+async def prestige_planner(request: Request, roster: str = "", q: str = ""):
+    await data.ensure_loaded()
+    roster_ids = _parse_roster(roster)
+    roster_crew = [data.characters[cid] for cid in roster_ids]
+
+    # Search box results (to add crew to the roster).
+    matches = []
+    if q:
+        ql = q.lower()
+        matches = [c for c in data.characters.values()
+                   if ql in c.get("CharacterDesignName", "").lower()
+                   and int(c["CharacterDesignId"]) not in roster_ids][:15]
+
+    combos: list[dict] = []
+    if len(roster_ids) >= 2:
+        recipes_by_crew: dict[int, list[dict[str, str]]] = {}
+        for cid in roster_ids:
+            try:
+                recipes_by_crew[cid] = await cached(
+                    f"pfrom:{cid}", 3600, lambda cid=cid: api.prestige_from(cid))
+            except PSSApiError:
+                recipes_by_crew[cid] = []
+        combos = _combos_for_roster(roster_ids, recipes_by_crew)
+        # Enrich + sort by target rarity then name.
+        for c in combos:
+            target = data.characters.get(c["to"], {})
+            c["target"] = target
+            c["rarity_rank"] = RARITY_ORDER.get(target.get("Rarity", ""), 9)
+        combos.sort(key=lambda c: (c["rarity_rank"],
+                                   c["target"].get("CharacterDesignName", "")))
+
+    roster_param = ",".join(str(i) for i in roster_ids)
+    return render(request, "planner.html", roster_ids=roster_ids,
+                  roster_crew=roster_crew, roster_param=roster_param,
+                  q=q, matches=matches, combos=combos,
+                  char=lambda cid: data.characters.get(cid, {}),
+                  max_roster=MAX_ROSTER)
+
+
 # --- JSON API ---------------------------------------------------------------
 @app.get("/api/crew")
 async def api_crew():

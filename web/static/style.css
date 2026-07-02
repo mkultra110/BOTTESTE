@@ -117,6 +117,16 @@ tbody tr:hover { background: var(--surface-2); }
 
 details summary { cursor: pointer; color: var(--text-secondary); margin: .5rem 0; }
 
+/* roster chips (prestige planner) */
+.roster { display: flex; flex-wrap: wrap; gap: .4rem; }
+.chip {
+  display: inline-flex; align-items: center; gap: .35rem;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 999px; padding: .2rem .7rem; font-size: .9rem;
+}
+.chip-x { color: var(--text-muted); font-weight: 700; padding: 0 .15rem; }
+.chip-x:hover { color: var(--error); text-decoration: none; }
+
 @media (max-width: 640px) {
   dl.stats { grid-template-columns: max-content 1fr; }
   .site-header nav { gap: .7rem; font-size: .95rem; }

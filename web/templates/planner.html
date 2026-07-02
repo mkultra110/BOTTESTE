@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Prestige planner — PSS Companion{% endblock %}
+{% block description %}Pick your crew and see every prestige combo you can make right now. No account needed — share your roster as a URL.{% endblock %}
+{% block content %}
+<h1>⚗️ Prestige planner</h1>
+<p class="muted">Add the crew you own; we'll show every prestige you can make with them.
+Your roster lives in the URL — bookmark or share it, no account needed.</p>
+
+<section class="card">
+  <h2>Your roster ({{ roster_crew | length }}/{{ max_roster }})</h2>
+  {% if roster_crew %}
+    <p class="roster">
+      {% for c in roster_crew %}
+        <span class="chip">{{ c.Rarity | rarity_icon }}
+          <a href="/crew/{{ c.CharacterDesignId }}">{{ c.CharacterDesignName }}</a>
+          <a class="chip-x" title="Remove"
+             href="/planner?roster={{ roster_ids | reject('equalto', c.CharacterDesignId | int) | join(',') }}">×</a>
+        </span>
+      {% endfor %}
+    </p>
+    <p><a class="muted" href="/planner">Clear all</a></p>
+  {% else %}
+    <p class="muted">Empty — search below to add your crew.</p>
+  {% endif %}
+
+  <form class="filters" method="get" action="/planner">
+    <input type="hidden" name="roster" value="{{ roster_param }}">
+    <input type="search" name="q" value="{{ q }}" placeholder="Search crew to add…" aria-label="Search crew">
+    <button type="submit">Search</button>
+  </form>
+  {% if q %}
+    {% if matches %}
+      <ul>
+        {% for m in matches %}
+          <li><a href="/planner?roster={{ roster_param ~ ',' if roster_param }}{{ m.CharacterDesignId }}">➕ {{ m.Rarity | rarity_icon }} {{ m.CharacterDesignName }}</a>
+              <span class="muted">{{ m.Rarity }}</span></li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="muted">No crew matching “{{ q }}” (or already in your roster).</p>
+    {% endif %}
+  {% endif %}
+</section>
+
+{% if roster_crew | length >= 2 %}
+  <section>
+    <h2>✨ {{ combos | length }} prestige combo(s) available</h2>
+    {% if combos %}
+      <table>
+        <thead><tr><th>Result</th><th>Rarity</th><th>Combine</th></tr></thead>
+        <tbody>
+        {% for c in combos %}
+          <tr>
+            <td><a href="/crew/{{ c.to }}">{{ c.target.get("Rarity","") | rarity_icon }} {{ c.target.get("CharacterDesignName", "#" ~ c.to) }}</a></td>
+            <td>{{ c.target.get("Rarity", "?") }}</td>
+            <td>{{ char(c.a).get("CharacterDesignName", "#" ~ c.a) }} ➕ {{ char(c.b).get("CharacterDesignName", "#" ~ c.b) }}{% if c.a == c.b %} <span class="muted">(needs 2 copies)</span>{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="muted">No combos with this roster — add more crew (prestige needs specific pairs; check a crew's page for its recipes).</p>
+    {% endif %}
+  </section>
+{% elif roster_crew %}
+  <p class="muted">Add at least one more crew to see possible combos.</p>
+{% endif %}
+{% endblock %}
