@@ -25,6 +25,7 @@ INITIAL_COGS = (
     "cogs.daily",
     "cogs.collections",
     "cogs.rooms",
+    "cogs.ships",
     "cogs.recruit",
 )
 

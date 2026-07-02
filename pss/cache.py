@@ -31,12 +31,14 @@ class GameData:
         self.items: dict[int, dict[str, str]] = {}
         self.rooms: dict[int, dict[str, str]] = {}
         self.collections: dict[int, dict[str, str]] = {}
+        self.ships: dict[int, dict[str, str]] = {}
 
         # A normalized name can map to several designs (e.g. two "Michelle").
         self._char_by_name: dict[str, list[int]] = {}
         self._item_by_name: dict[str, list[int]] = {}
         self._collection_by_name: dict[str, list[int]] = {}
         self._room_by_name: dict[str, list[int]] = {}
+        self._ship_by_name: dict[str, list[int]] = {}
 
     # -- loading ------------------------------------------------------------
     @property
@@ -59,6 +61,11 @@ class GameData:
         except Exception as exc:  # collections are non-critical
             log.warning("Could not load collection designs: %s", exc)
             collections = []
+        try:
+            ships = await self.api.list_ship_designs()
+        except Exception as exc:  # ships are non-critical
+            log.warning("Could not load ship designs: %s", exc)
+            ships = []
 
         self.characters = {int(c["CharacterDesignId"]): c for c in chars if c.get("CharacterDesignId")}
         self.items = {int(i["ItemDesignId"]): i for i in items if i.get("ItemDesignId")}
@@ -66,6 +73,12 @@ class GameData:
         self.collections = {
             int(c["CollectionDesignId"]): c for c in collections if c.get("CollectionDesignId")
         }
+        # Only player-usable hulls are worth surfacing (the rest are NPC ships).
+        player_ships = [
+            s for s in ships
+            if s.get("ShipDesignId") and s.get("ShipType") == "Player"
+        ]
+        self.ships = {int(s["ShipDesignId"]): s for s in player_ships}
 
         self._char_by_name = self._index_by_name(chars, "CharacterDesignName", "CharacterDesignId")
         self._item_by_name = self._index_by_name(items, "ItemDesignName", "ItemDesignId")
@@ -73,13 +86,15 @@ class GameData:
             collections, "CollectionName", "CollectionDesignId"
         )
         self._room_by_name = self._index_by_name(rooms, "RoomName", "RoomDesignId")
+        self._ship_by_name = self._index_by_name(player_ships, "ShipDesignName", "ShipDesignId")
         self._loaded_at = time.monotonic()
         log.info(
-            "Loaded %d crew, %d items, %d rooms, %d collections.",
+            "Loaded %d crew, %d items, %d rooms, %d collections, %d player ships.",
             len(self.characters),
             len(self.items),
             len(self.rooms),
             len(self.collections),
+            len(self.ships),
         )
 
     @staticmethod
@@ -146,6 +161,21 @@ class GameData:
 
     def suggest_rooms(self, query: str) -> list[str]:
         return self._suggest(self._room_by_name, self.rooms, "RoomName", query)
+
+    def suggest_ships(self, query: str) -> list[str]:
+        return self._suggest(self._ship_by_name, self.ships, "ShipDesignName", query)
+
+    def find_ship(self, query: str) -> dict[str, str] | None:
+        key = _norm(query)
+        if not key:
+            return None
+        if key in self._ship_by_name:
+            return self.ships[self._ship_by_name[key][0]]
+        matches = [sid for name, sids in self._ship_by_name.items() if key in name for sid in sids]
+        if matches:
+            matches.sort(key=lambda sid: int(self.ships[sid].get("ShipLevel", 0) or 0))
+            return self.ships[matches[0]]
+        return None
 
     def find_rooms(self, query: str, limit: int = 25) -> list[dict[str, str]]:
         """All room designs whose name contains the query (across levels).

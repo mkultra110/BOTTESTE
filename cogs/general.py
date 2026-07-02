@@ -88,8 +88,11 @@ class General(commands.Cog):
             inline=False,
         )
         embed.add_field(
-            name="🛠️ Rooms",
-            value="`/room <name>` — ship room stats (power, reload, levels).",
+            name="🛠️ Rooms & ships",
+            value=(
+                "`/room <name>` — ship room stats (power, reload, levels).\n"
+                "`/ship <name>` — player ship hull stats."
+            ),
             inline=False,
         )
         embed.add_field(
