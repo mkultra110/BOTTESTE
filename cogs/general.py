@@ -97,6 +97,11 @@ class General(commands.Cog):
             value="`/daily` — today's offers, sale, daily reward and news.",
             inline=False,
         )
+        embed.add_field(
+            name="🎰 Recruit",
+            value="`/draws` — recruit options: cost, rarity range and pity.",
+            inline=False,
+        )
         if getattr(api, "has_auth", False):
             embed.add_field(
                 name="🏆 Rankings (authenticated)",

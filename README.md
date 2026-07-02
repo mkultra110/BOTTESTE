@@ -25,6 +25,7 @@ stats & prestige recipes, item lookups and the daily offers.
 | `/collection [name]` | Collection combo bonus and member crew. |
 | `/room <name>` | Ship room stats across its levels. |
 | `/daily` | Today's sale, shop offer, daily reward and news. |
+| `/draws` | Recruit options: cost, rarity range and pity. |
 | `/top-players [count]` | Global player leaderboard *(needs auth — see below)*. |
 | `/help`, `/about`, `/ping` | Meta commands. |
 

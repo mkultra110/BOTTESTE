@@ -203,6 +203,12 @@ class PSSApi:
         )
         return [c.attrib for c in root.iter("CollectionDesign")]
 
+    async def list_draw_designs(self) -> list[dict[str, str]]:
+        root = await self._get(
+            "CharacterService/ListAllDrawDesigns", {"languageKey": self.language}
+        )
+        return [d.attrib for d in root.iter("DrawDesign")]
+
     async def prestige_from(self, char_id: int) -> list[dict[str, str]]:
         try:
             root = await self._get(
