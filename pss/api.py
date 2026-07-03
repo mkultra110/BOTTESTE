@@ -209,6 +209,12 @@ class PSSApi:
         )
         return [d.attrib for d in root.iter("DrawDesign")]
 
+    async def list_achievement_designs(self) -> list[dict[str, str]]:
+        root = await self._get(
+            "AchievementService/ListAchievementDesigns2", {"languageKey": self.language}
+        )
+        return [a.attrib for a in root.iter("AchievementDesign")]
+
     async def list_ship_designs(self) -> list[dict[str, str]]:
         root = await self._get(
             "ShipService/ListAllShipDesigns2", {"languageKey": self.language}

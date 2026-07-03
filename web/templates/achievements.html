@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Achievements — PSS Companion{% endblock %}
+{% block description %}All Pixel Starships achievements: objectives, rewards and hidden challenges.{% endblock %}
+{% block content %}
+<h1>🏅 Achievements <span class="muted">({{ total }})</span></h1>
+
+<form class="filters" method="get" action="/achievements">
+  <select name="type" aria-label="Achievement type" onchange="this.form.submit()">
+    <option value="">All types</option>
+    {% for t in types %}<option value="{{ t }}" {% if t == type %}selected{% endif %}>{{ t }}</option>{% endfor %}
+  </select>
+  <label class="check">
+    <input type="checkbox" name="hidden" value="1" {% if show_hidden %}checked{% endif %} onchange="this.form.submit()">
+    Show hidden ({{ hidden_count }})
+  </label>
+  <noscript><button type="submit">Filter</button></noscript>
+</form>
+
+<table>
+  <thead><tr><th></th><th>Achievement</th><th>Type</th><th>Reward</th></tr></thead>
+  <tbody>
+  {% for a in rows %}
+    <tr>
+      <td>{{ sprite(a.sprite, 32, "") }}</td>
+      <td>
+        <strong>{{ a.title }}</strong>
+        {% if a.monthly %}<span class="rarity-badge r-hero">Monthly</span>{% endif %}
+        {% if a.hidden %}<span class="rarity-badge r-special">Hidden</span>{% endif %}
+        <br><span class="muted">{{ a.desc }}</span>
+      </td>
+      <td>{{ a.type }}</td>
+      <td>
+        {% if a.reward %}
+          {% if a.reward.kind == "item" %}{{ a.reward.qty }}× <a href="/item/{{ a.reward.item_id }}">{{ a.reward.label }}</a>
+          {% else %}{{ a.reward.label }}{% endif %}
+        {% else %}—{% endif %}
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

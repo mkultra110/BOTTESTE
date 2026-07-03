@@ -153,6 +153,7 @@ tbody tr:hover { background: var(--surface-2); }
 .filters input[type="search"] { flex: 1 1 220px; }
 .filters button { cursor: pointer; }
 .filters button:hover { background: var(--surface-2); }
+.filters .check { display: inline-flex; align-items: center; gap: .35rem; color: var(--text-secondary); font-size: .92rem; }
 
 /* recipes */
 .recipes { columns: 2 280px; column-gap: 2rem; padding-left: 1.1rem; }

@@ -430,6 +430,52 @@ async def recruit_page(request: Request):
     return render(request, "recruit.html", draws=rows)
 
 
+def _parse_reward(raw: str | None) -> dict | None:
+    """Parse an achievement RewardString ('starbux:5', 'item:749x1') to a
+    renderable reward with an optional item link."""
+    if not raw or ":" not in raw:
+        return None
+    kind, _, rest = raw.partition(":")
+    amount = rest.split("x")[0]
+    if kind == "item":
+        it = data.items.get(int(amount)) if amount.isdigit() else None
+        qty = rest.split("x")[1] if "x" in rest else "1"
+        return {"kind": "item", "item_id": amount,
+                "label": (it.get("ItemDesignName") if it else f"item #{amount}"),
+                "qty": qty}
+    return {"kind": kind, "label": f"{num(amount)} {kind.capitalize()}"}
+
+
+@app.get("/achievements", response_class=HTMLResponse)
+async def achievements_page(request: Request, type: str = "", hidden: str = ""):
+    await data.ensure_loaded()
+    try:
+        ach = await cached("achievements", 3600, api.list_achievement_designs)
+    except PSSApiError:
+        ach = []
+    types = sorted({a.get("AchievementType", "") for a in ach})
+    shown = ach
+    if type:
+        shown = [a for a in shown if a.get("AchievementType") == type]
+    if hidden != "1":
+        shown = [a for a in shown if a.get("IsHidden") != "true"]
+    shown = sorted(shown, key=lambda a: (a.get("AchievementType", ""),
+                                         int(a.get("OrderIndex", 0) or 0)))
+    rows = [{
+        "title": a.get("AchievementTitle", "?"),
+        "desc": clean_text(a.get("AchievementDescription")),
+        "type": a.get("AchievementType", ""),
+        "sprite": a.get("SpriteId"),
+        "reward": _parse_reward(a.get("RewardString")),
+        "monthly": a.get("DurationType") == "Monthly",
+        "hidden": a.get("IsHidden") == "true",
+    } for a in shown]
+    hidden_count = sum(1 for a in ach if a.get("IsHidden") == "true")
+    return render(request, "achievements.html", rows=rows, types=types,
+                  type=type, show_hidden=(hidden == "1"),
+                  total=len(shown), hidden_count=hidden_count)
+
+
 @app.get("/collections", response_class=HTMLResponse)
 async def collections_page(request: Request):
     await data.ensure_loaded()
@@ -782,7 +828,7 @@ async def sitemap(request: Request):
     await data.ensure_loaded()
     base = str(request.base_url).rstrip("/")
     urls = ["/", "/crew", "/items", "/rooms", "/ships", "/collections",
-            "/fleets", "/players", "/planner", "/recruit"]
+            "/fleets", "/players", "/planner", "/recruit", "/achievements"]
     urls += [f"/crew/{cid}" for cid in data.characters]
     urls += [f"/item/{iid}" for iid in data.items]
     body = "".join(f"<url><loc>{base}{u}</loc></url>" for u in urls)
