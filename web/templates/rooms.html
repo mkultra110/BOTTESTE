@@ -18,7 +18,7 @@
   <tbody>
   {% for r in rooms %}
     <tr>
-      <td>{{ r.RoomName }}</td>
+      <td>{{ sprite(r.ImageSpriteId or r.LogoSpriteId, 26, "") }} {{ r.RoomName }}</td>
       <td>{{ r.RoomType }}</td>
       <td class="num">{{ r.MinShipLevel }}</td>
       <td class="num">{{ r.MaxSystemPower if r.MaxSystemPower and r.MaxSystemPower != "0" else "—" }}</td>

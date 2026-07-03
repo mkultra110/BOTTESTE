@@ -542,9 +542,10 @@ async def item_detail(request: Request, item_id: int):
             "lo": min(recent), "hi": max(recent),
             "trend": trend, "drift": round(drift),
         }
+    recurrence = await asyncio.to_thread(_offer_recurrence, "Item", str(item_id))
     return render(request, "item_detail.html", it=it, history=history,
                   chart=_price_chart(history), summary=summary,
-                  items_table=data.items)
+                  recurrence=recurrence, items_table=data.items)
 
 
 @app.get("/fleets", response_class=HTMLResponse)

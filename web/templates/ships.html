@@ -14,7 +14,7 @@
   <tbody>
   {% for s in ships %}
     <tr>
-      <td>{{ s.ShipDesignName }}</td>
+      <td>{{ sprite(s.MiniShipSpriteId or s.LogoSpriteId, 26, "") }} {{ s.ShipDesignName }}</td>
       <td class="num">{{ s.ShipLevel }}</td>
       <td class="num">{{ s.Hp | num }}</td>
       <td>{{ s.Rows }}×{{ s.Columns }}</td>

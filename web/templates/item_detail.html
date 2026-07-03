@@ -19,6 +19,7 @@
       {% endif %}
       {% if it.MarketPrice and it.MarketPrice != "0" %}<dt>Savy value</dt><dd>{{ it.MarketPrice | num }} 💰</dd>{% endif %}
       {% if it.FairPrice and it.FairPrice != "0" %}<dt>Fair price</dt><dd>{{ it.FairPrice | num }} 💰</dd>{% endif %}
+      {% if recurrence %}<dt>Daily shop</dt><dd>offered {{ recurrence.times }}× since {{ recurrence.tracked_since }}</dd>{% endif %}
     </dl>
   </section>
 

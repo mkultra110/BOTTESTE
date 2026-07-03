@@ -39,7 +39,7 @@
     <h2>🛠️ Rooms</h2>
     <ul>
       {% for r in results["rooms"] %}
-        <li>{{ r.RoomName }} <span class="muted">{{ r.RoomType }} · min lvl {{ r.MinShipLevel }}</span></li>
+        <li>{{ sprite(r.ImageSpriteId or r.LogoSpriteId, 24, "") }} {{ r.RoomName }} <span class="muted">{{ r.RoomType }} · min lvl {{ r.MinShipLevel }}</span></li>
       {% endfor %}
     </ul>
   </section>
@@ -50,7 +50,7 @@
     <h2>🚀 Ships</h2>
     <ul>
       {% for s in results["ships"] %}
-        <li>{{ s.ShipDesignName }} <span class="muted">lvl {{ s.ShipLevel }}</span></li>
+        <li>{{ sprite(s.MiniShipSpriteId or s.LogoSpriteId, 24, "") }} {{ s.ShipDesignName }} <span class="muted">lvl {{ s.ShipLevel }}</span></li>
       {% endfor %}
     </ul>
   </section>
