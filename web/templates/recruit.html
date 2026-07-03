@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Recruit odds — PSS Companion{% endblock %}
+{% block description %}Pixel Starships recruitment: draw options, cost, rarity range and pity for every crew draw.{% endblock %}
+{% block content %}
+<h1>🎰 Crew recruitment</h1>
+<p class="muted">Every draw option — base cost, the rarity range you can pull, how much
+the cost climbs per draw, and the pity counter for a guaranteed Hero.</p>
+
+{% if draws %}
+<div class="cards">
+  {% for d in draws %}
+  <section class="card">
+    <h2>{{ d.name }}</h2>
+    <p class="muted">{{ d.desc }}</p>
+    <dl>
+      <dt>Cost</dt><dd>{{ d.cost }}</dd>
+      <dt>Rarity</dt><dd><span class="rarity-badge {{ d.rarity_class }}">{{ d.rarity }}</span></dd>
+      {% if d.increase and d.increase != "0" %}<dt>Cost rises</dt><dd>+{{ d.increase }}% per draw</dd>{% endif %}
+      {% if d.pity and d.pity != "0" %}<dt>Pity</dt><dd>guaranteed Hero every {{ d.pity }} draws</dd>{% endif %}
+    </dl>
+  </section>
+  {% endfor %}
+</div>
+{% else %}
+<p>Recruitment data is unavailable right now.</p>
+{% endif %}
+{% endblock %}

@@ -391,6 +391,45 @@ async def ships_page(request: Request, q: str = ""):
     return render(request, "ships.html", ships=ships[:200], total=len(ships), q=q)
 
 
+RARITY_SCALE = ["Common", "Elite", "Unique", "Epic", "Hero", "Legendary", "Special"]
+
+
+def _draw_rarity(idx: str | None) -> str:
+    try:
+        return RARITY_SCALE[int(idx)]
+    except (TypeError, ValueError, IndexError):
+        return "?"
+
+
+def _draw_cost(raw: str | None) -> str:
+    if not raw or ":" not in raw:
+        return raw or "?"
+    kind, _, amount = raw.partition(":")
+    return f"{num(amount)} {kind.capitalize()}"
+
+
+@app.get("/recruit", response_class=HTMLResponse)
+async def recruit_page(request: Request):
+    try:
+        draws = await cached("draws", 3600, api.list_draw_designs)
+    except PSSApiError:
+        draws = []
+    draws = sorted(draws, key=lambda d: int(d.get("OrderIndex", 0) or 0))
+    rows = []
+    for d in draws:
+        lo, hi = _draw_rarity(d.get("MinCrewRarity")), _draw_rarity(d.get("MaxCrewRarity"))
+        rows.append({
+            "name": d.get("DrawName", "?"),
+            "desc": clean_text(d.get("DrawDescription")),
+            "cost": _draw_cost(d.get("Cost")),
+            "rarity": lo if lo == hi else f"{lo} → {hi}",
+            "rarity_class": "r-" + hi.lower(),
+            "increase": d.get("CostPercentageIncrease"),
+            "pity": d.get("GuaranteedHeroicDraws"),
+        })
+    return render(request, "recruit.html", draws=rows)
+
+
 @app.get("/collections", response_class=HTMLResponse)
 async def collections_page(request: Request):
     await data.ensure_loaded()
@@ -743,7 +782,7 @@ async def sitemap(request: Request):
     await data.ensure_loaded()
     base = str(request.base_url).rstrip("/")
     urls = ["/", "/crew", "/items", "/rooms", "/ships", "/collections",
-            "/fleets", "/players", "/planner"]
+            "/fleets", "/players", "/planner", "/recruit"]
     urls += [f"/crew/{cid}" for cid in data.characters]
     urls += [f"/item/{iid}" for iid in data.items]
     body = "".join(f"<url><loc>{base}{u}</loc></url>" for u in urls)
