@@ -172,6 +172,17 @@ tbody tr:hover { background: var(--surface-2); }
 
 details summary { cursor: pointer; color: var(--text-secondary); margin: .5rem 0; }
 
+/* galaxy map */
+.galaxy-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius);
+  background: radial-gradient(1000px 500px at 50% 30%, #16203a 0%, #0c0e14 70%); }
+.galaxy { width: 100%; min-width: 720px; height: auto; display: block; }
+.galaxy .route { stroke: #4f9dff44; stroke-width: 1.5; }
+.galaxy .route-t { fill: var(--text-muted); font-size: 9px; }
+.galaxy .node { fill: var(--r-hero); stroke: #1a1a19; stroke-width: 1.5; transition: r .1s ease; }
+.galaxy .node-lbl { fill: var(--text-secondary); font-size: 10px; opacity: .55; }
+.galaxy .sys:hover .node { r: 9; fill: #fff; }
+.galaxy .sys:hover .node-lbl { fill: #fff; opacity: 1; font-weight: 600; }
+
 /* roster chips (prestige planner) */
 .roster { display: flex; flex-wrap: wrap; gap: .4rem; }
 .chip {

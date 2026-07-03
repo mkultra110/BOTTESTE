@@ -476,6 +476,69 @@ async def achievements_page(request: Request, type: str = "", hidden: str = ""):
                   total=len(shown), hidden_count=hidden_count)
 
 
+def _galaxy_map(systems: list[dict], links: list[dict]) -> dict | None:
+    """Project star systems onto an SVG plane and prepare link segments."""
+    pts = {}
+    for s in systems:
+        try:
+            pts[int(s["StarSystemId"])] = (int(s.get("X", 0) or 0), int(s.get("Y", 0) or 0))
+        except (KeyError, ValueError):
+            continue
+    if not pts:
+        return None
+    xs = [p[0] for p in pts.values()]
+    ys = [p[1] for p in pts.values()]
+    minx, maxx, miny, maxy = min(xs), max(xs), min(ys), max(ys)
+    w, h, pad = 900, 640, 40
+    sx = (w - 2 * pad) / ((maxx - minx) or 1)
+    sy = (h - 2 * pad) / ((maxy - miny) or 1)
+
+    def proj(x, y):
+        # flip Y so the in-game "up" points up on screen
+        return (round(pad + (x - minx) * sx, 1), round(pad + (maxy - y) * sy, 1))
+
+    nodes = []
+    for s in systems:
+        try:
+            sid = int(s["StarSystemId"])
+        except (KeyError, ValueError):
+            continue
+        px, py = proj(*pts[sid])
+        nodes.append({"id": sid, "x": px, "y": py,
+                      "title": s.get("StarSystemTitle", f"System {sid}"),
+                      "sprite": s.get("IconSpriteId"),
+                      "desc": clean_text(s.get("StarSystemDescription"))})
+    segs = []
+    for l in links:
+        try:
+            a, b = int(l["FromStarSystemId"]), int(l["ToStarSystemId"])
+        except (KeyError, ValueError):
+            continue
+        if a in pts and b in pts:
+            ax, ay = proj(*pts[a])
+            bx, by = proj(*pts[b])
+            segs.append({"x1": ax, "y1": ay, "x2": bx, "y2": by,
+                         "mx": round((ax + bx) / 2, 1), "my": round((ay + by) / 2, 1),
+                         "t": l.get("TravelTime")})
+    return {"w": w, "h": h, "nodes": nodes, "segs": segs}
+
+
+@app.get("/galaxy", response_class=HTMLResponse)
+async def galaxy_page(request: Request):
+    try:
+        systems = await cached("systems", 86400, api.list_star_systems)
+        links = await cached("syslinks", 86400, api.list_star_system_links)
+    except PSSApiError:
+        systems, links = [], []
+    gmap = _galaxy_map(systems, links)
+    lore = sorted(
+        [{"title": s.get("StarSystemTitle", ""), "desc": clean_text(s.get("StarSystemDescription")),
+          "sprite": s.get("IconSpriteId"), "req": clean_text(s.get("RequirementDescription"))}
+         for s in systems if s.get("StarSystemTitle")],
+        key=lambda s: s["title"])
+    return render(request, "galaxy.html", gmap=gmap, lore=lore)
+
+
 @app.get("/collections", response_class=HTMLResponse)
 async def collections_page(request: Request):
     await data.ensure_loaded()
@@ -828,7 +891,7 @@ async def sitemap(request: Request):
     await data.ensure_loaded()
     base = str(request.base_url).rstrip("/")
     urls = ["/", "/crew", "/items", "/rooms", "/ships", "/collections",
-            "/fleets", "/players", "/planner", "/recruit", "/achievements"]
+            "/fleets", "/players", "/planner", "/recruit", "/achievements", "/galaxy"]
     urls += [f"/crew/{cid}" for cid in data.characters]
     urls += [f"/item/{iid}" for iid in data.items]
     body = "".join(f"<url><loc>{base}{u}</loc></url>" for u in urls)

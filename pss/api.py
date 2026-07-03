@@ -221,6 +221,14 @@ class PSSApi:
         )
         return [s.attrib for s in root.iter("ShipDesign")]
 
+    async def list_star_systems(self) -> list[dict[str, str]]:
+        root = await self._get("GalaxyService/ListStarSystems")
+        return [s.attrib for s in root.iter("StarSystem")]
+
+    async def list_star_system_links(self) -> list[dict[str, str]]:
+        root = await self._get("GalaxyService/ListStarSystemLinks")
+        return [l.attrib for l in root.iter("StarSystemLink")]
+
     async def list_sprites(self) -> list[dict[str, str]]:
         """Sprite catalogue: SpriteId -> spritesheet file + crop coordinates.
 

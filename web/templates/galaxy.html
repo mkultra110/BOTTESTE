@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Galaxy map — PSS Companion{% endblock %}
+{% block description %}The Pixel Starships galaxy: 55 star systems, travel routes and system lore.{% endblock %}
+{% block content %}
+<h1>🌌 Galaxy map</h1>
+<p class="muted">The {{ gmap.nodes | length if gmap else 0 }} star systems and their travel
+routes. Hover a system for its name; travel times are shown on each route.</p>
+
+{% if gmap %}
+<div class="galaxy-wrap">
+  <svg viewBox="0 0 {{ gmap.w }} {{ gmap.h }}" class="galaxy" role="img" aria-label="Galaxy map">
+    {% for s in gmap.segs %}
+      <line x1="{{ s.x1 }}" y1="{{ s.y1 }}" x2="{{ s.x2 }}" y2="{{ s.y2 }}" class="route"/>
+      {% if s.t %}<text x="{{ s.mx }}" y="{{ s.my }}" class="route-t">{{ s.t }}</text>{% endif %}
+    {% endfor %}
+    {% for n in gmap.nodes %}
+      <g class="sys">
+        <circle cx="{{ n.x }}" cy="{{ n.y }}" r="6" class="node"/>
+        <text x="{{ n.x }}" y="{{ n.y - 10 }}" class="node-lbl" text-anchor="middle">{{ n.title }}</text>
+        <title>{{ n.title }}{% if n.desc %} — {{ n.desc }}{% endif %}</title>
+      </g>
+    {% endfor %}
+  </svg>
+</div>
+{% endif %}
+
+<section class="block">
+  <h2>📖 System lore</h2>
+  <div class="cards">
+    {% for s in lore %}
+    <section class="card">
+      <h2>{{ sprite(s.sprite, 26, "") }} {{ s.title }}</h2>
+      <p class="muted">{{ s.desc }}</p>
+      {% if s.req %}<p class="muted"><em>Unlock: {{ s.req }}</em></p>{% endif %}
+    </section>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
