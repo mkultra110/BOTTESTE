@@ -3,7 +3,8 @@
 {% block description %}{{ it.Rarity }} {{ it.ItemType }}{% if summary %} · typical recent price {{ summary.lo | num }}–{{ summary.hi | num }} bux ({{ summary.trend }}){% endif %} · Pixel Starships item.{% endblock %}
 {% block content %}
 <p><a href="/items">← All items</a></p>
-<h1>{{ sprite(it.ImageSpriteId, 72, it.ItemDesignName) }} {{ it.Rarity | rarity_icon }} {{ it.ItemDesignName }}</h1>
+<h1>{{ sprite(it.ImageSpriteId, 72, it.ItemDesignName) }} {{ it.ItemDesignName }}
+  <span class="rarity-badge {{ it.Rarity | rarity_class }}">{{ it.Rarity }}</span></h1>
 <p class="muted">{{ it.ItemDesignDescription | clean }}</p>
 
 <div class="cards">

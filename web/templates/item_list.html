@@ -20,9 +20,9 @@
   <thead><tr><th>Item</th><th>Rarity</th><th>Type</th><th>Bonus</th><th class="num">Savy value</th></tr></thead>
   <tbody>
   {% for i in items %}
-    <tr>
-      <td><a href="/item/{{ i.ItemDesignId }}">{{ sprite(i.ImageSpriteId, 36, "") }} {{ i.Rarity | rarity_icon }} {{ i.ItemDesignName }}</a></td>
-      <td>{{ i.Rarity }}</td>
+    <tr class="rr {{ i.Rarity | rarity_class }}">
+      <td><a href="/item/{{ i.ItemDesignId }}">{{ sprite(i.ImageSpriteId, 36, "") }} {{ i.ItemDesignName }}</a></td>
+      <td><span class="rarity-badge {{ i.Rarity | rarity_class }}">{{ i.Rarity }}</span></td>
       <td>{{ i.ItemType }}{% if i.ItemSubType and i.ItemSubType != "None" %} · {{ i.ItemSubType }}{% endif %}</td>
       <td>{% if i.EnhancementType and i.EnhancementType != "None" %}{{ i.EnhancementType }} +{{ i.EnhancementValue }}{% endif %}</td>
       <td class="num">{% if i.MarketPrice and i.MarketPrice != "0" %}{{ i.MarketPrice | num }} 💰{% endif %}</td>

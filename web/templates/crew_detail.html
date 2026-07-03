@@ -3,7 +3,8 @@
 {% block description %}{{ c.Rarity }} crew · {{ c.SpecialAbilityType | ability }} · HP {{ c.FinalHp | num }} / ATK {{ c.FinalAttack | num }} / RPR {{ c.FinalRepair | num }} · {{ to_recipes | length }} prestige recipes.{% endblock %}
 {% block content %}
 <p><a href="/crew">← All crew</a></p>
-<h1>{{ sprite(c.ProfileSpriteId, 96, c.CharacterDesignName) }} {{ c.Rarity | rarity_icon }} {{ c.CharacterDesignName }}</h1>
+<h1>{{ sprite(c.ProfileSpriteId, 96, c.CharacterDesignName) }} {{ c.CharacterDesignName }}
+  <span class="rarity-badge {{ c.Rarity | rarity_class }}">{{ c.Rarity }}</span></h1>
 <p class="muted">{{ c.CharacterDesignDescription | clean }}</p>
 
 <div class="cards">

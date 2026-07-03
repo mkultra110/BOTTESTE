@@ -2,34 +2,59 @@
    Color tokens follow the validated reference palette (series-1 #3987e5
    passes lightness/chroma/contrast checks on surface #1a1a19). */
 :root {
-  --surface-0: #121211;
-  --surface-1: #1a1a19;
-  --surface-2: #242423;
-  --text-primary: #ffffff;
-  --text-secondary: #c3c2b7;
-  --text-muted: #8b8a80;
+  --surface-0: #0f1014;
+  --surface-1: #181a20;
+  --surface-2: #22252e;
+  --text-primary: #f4f5f7;
+  --text-secondary: #b9bcc7;
+  --text-muted: #7f838f;
   --series-1: #3987e5;
+  --accent: #4f9dff;
   --error: #e66767;
-  --border: #34343240;
-  --radius: 10px;
+  --border: #ffffff14;
+  --radius: 12px;
+
+  /* Pixel Starships rarity colours (match the in-game crew borders). */
+  --r-common: #b9bcc7;
+  --r-elite: #45c477;
+  --r-unique: #4f9dff;
+  --r-epic: #b06cf0;
+  --r-hero: #f2c14b;
+  --r-special: #ef5f5f;
+  --r-legendary: #ff9d3c;
 }
 
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
-  background: var(--surface-0);
+  background:
+    radial-gradient(1200px 600px at 80% -10%, #1b2130 0%, transparent 60%),
+    var(--surface-0);
   color: var(--text-primary);
-  font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-main { max-width: 980px; margin: 0 auto; padding: 1rem 1.25rem 3rem; }
+main { max-width: 980px; margin: 0 auto; padding: 1.2rem 1.25rem 4rem; }
 
-a { color: var(--series-1); text-decoration: none; }
+a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
+a:focus-visible, input:focus-visible, select:focus-visible, button:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px;
+}
 
-h1 { font-size: 1.6rem; margin: 1rem 0 .5rem; }
-h2 { font-size: 1.05rem; margin: 0 0 .5rem; color: var(--text-secondary); }
+h1 {
+  font-size: clamp(1.5rem, 1.2rem + 1.4vw, 2rem);
+  margin: 1rem 0 .5rem; letter-spacing: -0.02em; text-wrap: balance;
+  display: flex; align-items: center; gap: .55rem; flex-wrap: wrap;
+}
+h2 {
+  font-size: 1.05rem; margin: 0 0 .55rem; color: var(--text-secondary);
+  letter-spacing: -0.01em; font-weight: 650;
+}
+/* section headings (with emoji) sit a bit larger than card titles */
+main > section > h2 { font-size: 1.15rem; color: var(--text-primary); }
 
 .muted { color: var(--text-muted); }
 .error { color: var(--error); }
@@ -39,14 +64,15 @@ h2 { font-size: 1.05rem; margin: 0 0 .5rem; color: var(--text-secondary); }
 .site-header {
   display: flex; align-items: center; justify-content: space-between;
   flex-wrap: wrap; gap: .5rem;
-  padding: .75rem 1.25rem;
-  background: var(--surface-1);
+  padding: .7rem 1.25rem;
+  background: #14161caa; backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 10;
 }
-.site-header .brand { color: var(--text-primary); font-size: 1.05rem; }
-.site-header nav { display: flex; gap: 1rem; flex-wrap: wrap; }
-.site-header nav a { color: var(--text-secondary); }
-.site-header nav a:hover { color: var(--text-primary); text-decoration: none; }
+.site-header .brand { color: var(--text-primary); font-size: 1.05rem; letter-spacing: -0.01em; }
+.site-header nav { display: flex; gap: 1.1rem; flex-wrap: wrap; }
+.site-header nav a { color: var(--text-secondary); font-size: .95rem; padding: .1rem 0; }
+.site-header nav a:hover { color: var(--text-primary); text-decoration: none; box-shadow: inset 0 -2px 0 var(--accent); }
 
 .global-search { flex: 1 1 200px; max-width: 320px; }
 .global-search input {
@@ -73,8 +99,36 @@ h2 { font-size: 1.05rem; margin: 0 0 .5rem; color: var(--text-secondary); }
 
 /* cards */
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin: 1rem 0; }
-.card { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; }
+.card {
+  background: linear-gradient(180deg, #ffffff08, transparent 40%), var(--surface-1);
+  border: 1px solid var(--border); border-radius: var(--radius); padding: 1.1rem;
+  transition: border-color .15s ease, transform .15s ease;
+}
+.card:hover { border-color: #ffffff28; }
 .card-wide { grid-column: 1 / -1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .card { transition: none; }
+}
+
+/* rarity badge + row accents (grounded in the game's crew border colours) */
+.rarity-badge {
+  display: inline-block; font-size: .72rem; font-weight: 700;
+  letter-spacing: .03em; text-transform: uppercase;
+  padding: .1rem .45rem; border-radius: 999px;
+  border: 1px solid currentColor; line-height: 1.4;
+}
+.r-common { color: var(--r-common); }
+.r-elite { color: var(--r-elite); }
+.r-unique { color: var(--r-unique); }
+.r-epic { color: var(--r-epic); }
+.r-hero { color: var(--r-hero); }
+.r-special { color: var(--r-special); }
+.r-legendary { color: var(--r-legendary); }
+/* a thin rarity rail on the left of table rows */
+tbody tr.rr { box-shadow: inset 3px 0 0 currentColor; }
+tbody tr.rr td:first-child { padding-left: .8rem; }
+tbody tr.rr td { color: var(--text-primary); }
 
 /* definition lists */
 dl { display: grid; grid-template-columns: max-content 1fr; gap: .25rem .9rem; margin: 0; }

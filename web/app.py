@@ -173,6 +173,7 @@ templates.env.filters["clean"] = clean_text
 templates.env.filters["rarity_icon"] = rarity_icon
 templates.env.filters["ability"] = ability_name
 templates.env.filters["slots"] = equipment_slots
+templates.env.filters["rarity_class"] = lambda r: "r-" + (r or "Common").lower()
 templates.env.globals["now"] = time.time
 
 # Sprites are served through our own /sprite/{file}.png proxy (disk-cached)

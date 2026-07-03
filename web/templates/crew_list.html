@@ -22,9 +22,9 @@
     <th class="num">HP</th><th class="num">ATK</th><th class="num">RPR</th><th class="num">ABL</th></tr></thead>
   <tbody>
   {% for c in crew %}
-    <tr>
-      <td><a href="/crew/{{ c.CharacterDesignId }}">{{ sprite(c.ProfileSpriteId, 36, "") }} {{ c.Rarity | rarity_icon }} {{ c.CharacterDesignName }}</a></td>
-      <td>{{ c.Rarity }}</td>
+    <tr class="rr {{ c.Rarity | rarity_class }}">
+      <td><a href="/crew/{{ c.CharacterDesignId }}">{{ sprite(c.ProfileSpriteId, 36, "") }} {{ c.CharacterDesignName }}</a></td>
+      <td><span class="rarity-badge {{ c.Rarity | rarity_class }}">{{ c.Rarity }}</span></td>
       <td>{{ c.SpecialAbilityType | ability }}</td>
       <td class="num">{{ c.FinalHp | num }}</td>
       <td class="num">{{ c.FinalAttack | num }}</td>
