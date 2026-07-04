@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Events — PSS Companion{% endblock %}
+{% block description %}Pixel Starships battle events: drop windows, chances and loot, past and present.{% endblock %}
+{% block content %}
+<h1>📅 Battle events <span class="muted">({{ rows | length }})</span></h1>
+<p class="muted">In-battle event drops — what falls, at what chance, and when the event
+window {% if active_count %}is live ({{ active_count }} active now){% else %}ran{% endif %}.</p>
+
+<table>
+  <thead><tr><th></th><th>Event</th><th>Drop</th><th class="num">Chance</th><th class="num">Daily cap</th><th>Window</th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+    <tr>
+      <td>{{ sprite(r.sprite, 28, "") }}</td>
+      <td>
+        <strong>{{ r.name }}</strong>
+        {% if r.active %}<span class="rarity-badge r-elite">Live</span>{% endif %}
+        <br><span class="muted">{{ r.desc }}</span>
+      </td>
+      <td>
+        {% if r.drop %}
+          {{ sprite(r.drop.sprite, 24, "") }}
+          {% if r.drop.kind == "item" %}<a href="/item/{{ r.drop.id }}">{{ r.drop.label }}</a>
+          {% else %}<a href="/crew/{{ r.drop.id }}">{{ r.drop.label }}</a>{% endif %}
+        {% elif r.type %}<span class="muted">{{ r.type }}</span>{% else %}—{% endif %}
+      </td>
+      <td class="num">{{ r.chance }}%</td>
+      <td class="num">{{ r.limit }}</td>
+      <td class="muted">{{ r.start }} → {{ r.end }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

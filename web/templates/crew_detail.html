@@ -38,6 +38,10 @@
   </section>
 </div>
 
+{% if event_sources %}
+<p class="muted">🎁 Event drop: {% for e in event_sources %}<strong>{{ e.name }}</strong> ({{ e.chance }}%, until {{ e.end }}){% if not loop.last %}, {% endif %}{% endfor %} — <a href="/events">all events</a></p>
+{% endif %}
+
 {% if stat_rows %}
 <section>
   <h2>📈 Stats by level <span class="muted">({{ progression }} progression)</span></h2>

@@ -476,6 +476,81 @@ async def achievements_page(request: Request, type: str = "", hidden: str = ""):
                   total=len(shown), hidden_count=hidden_count)
 
 
+# --- events (situations) -----------------------------------------------------
+def _parse_change(raw: str | None) -> dict | None:
+    """Parse a situation ChangeArgumentString like 'item:713x1' or
+    'character:327' into a linkable drop reference."""
+    if not raw or ":" not in raw:
+        return None
+    kind, _, rest = raw.partition(":")
+    ref = rest.split("x")[0]
+    if kind == "item" and ref.isdigit():
+        it = data.items.get(int(ref))
+        return {"kind": "item", "id": ref,
+                "label": it.get("ItemDesignName") if it else f"item #{ref}",
+                "sprite": it.get("ImageSpriteId") if it else None}
+    if kind == "character" and ref.isdigit():
+        c = data.characters.get(int(ref))
+        return {"kind": "crew", "id": ref,
+                "label": c.get("CharacterDesignName") if c else f"crew #{ref}",
+                "sprite": c.get("ProfileSpriteId") if c else None}
+    return None
+
+
+def _situations_rows(situations: list[dict]) -> list[dict]:
+    now = datetime.now(timezone.utc)
+    rows = []
+    for s in situations:
+        start = parse_pss_datetime(s.get("FromDate"))
+        end = parse_pss_datetime(s.get("EndDate"))
+        rows.append({
+            "name": s.get("SituationName", "?"),
+            "desc": clean_text(s.get("SituationDescription")),
+            "sprite": s.get("IconSpriteId"),
+            "start": start.strftime("%Y-%m-%d") if start else "?",
+            "end": end.strftime("%Y-%m-%d") if end else "?",
+            "active": bool(start and end and start <= now <= end),
+            "chance": s.get("Chance"),
+            "limit": s.get("DailyOccurrenceLimit"),
+            "drop": _parse_change(s.get("ChangeArgumentString")),
+            "type": s.get("ChangeType", ""),
+            "_end_sort": end or datetime.min.replace(tzinfo=timezone.utc),
+        })
+    # Active first, then most recent past events.
+    rows.sort(key=lambda r: (not r["active"], -r["_end_sort"].timestamp()))
+    return rows
+
+
+async def _event_sources(kind: str, ref_id: int) -> list[dict]:
+    """Situations that drop this crew/item (loot-source cross-links)."""
+    try:
+        situations = await cached("situations", 3600, api.list_situation_designs)
+    except PSSApiError:
+        return []
+    needle = f"{kind}:{ref_id}"
+    out = []
+    for s in situations:
+        arg = s.get("ChangeArgumentString", "") or ""
+        if arg == needle or arg.startswith(needle + "x"):
+            end = parse_pss_datetime(s.get("EndDate"))
+            out.append({"name": s.get("SituationName", "?"),
+                        "chance": s.get("Chance"),
+                        "end": end.strftime("%Y-%m-%d") if end else "?"})
+    return out
+
+
+@app.get("/events", response_class=HTMLResponse)
+async def events_page(request: Request):
+    await data.ensure_loaded()
+    try:
+        situations = await cached("situations", 3600, api.list_situation_designs)
+    except PSSApiError:
+        situations = []
+    rows = _situations_rows(situations)
+    active = [r for r in rows if r["active"]]
+    return render(request, "events.html", rows=rows, active_count=len(active))
+
+
 def _galaxy_map(systems: list[dict], links: list[dict]) -> dict | None:
     """Project star systems onto an SVG plane and prepare link segments."""
     pts = {}
@@ -607,10 +682,11 @@ async def crew_detail(request: Request, char_id: int):
             "values": [num(round(interpolate_stat(base, final, lv, progression), 1))
                        for lv in levels],
         })
+    event_sources = await _event_sources("character", char_id)
     return render(request, "crew_detail.html", c=c, collection=collection,
                   to_recipes=to_recipes, from_recipes=from_recipes,
                   char_name=data.char_name, levels=levels, stat_rows=stat_rows,
-                  progression=progression)
+                  progression=progression, event_sources=event_sources)
 
 
 @app.get("/items", response_class=HTMLResponse)
@@ -692,9 +768,11 @@ async def item_detail(request: Request, item_id: int):
             "trend": trend, "drift": round(drift),
         }
     recurrence = await asyncio.to_thread(_offer_recurrence, "Item", str(item_id))
+    event_sources = await _event_sources("item", item_id)
     return render(request, "item_detail.html", it=it, history=history,
                   chart=_price_chart(history), summary=summary,
-                  recurrence=recurrence, items_table=data.items)
+                  recurrence=recurrence, event_sources=event_sources,
+                  items_table=data.items)
 
 
 @app.get("/fleets", response_class=HTMLResponse)
@@ -891,7 +969,7 @@ async def sitemap(request: Request):
     await data.ensure_loaded()
     base = str(request.base_url).rstrip("/")
     urls = ["/", "/crew", "/items", "/rooms", "/ships", "/collections",
-            "/fleets", "/players", "/planner", "/recruit", "/achievements", "/galaxy"]
+            "/fleets", "/players", "/planner", "/recruit", "/achievements", "/galaxy", "/events"]
     urls += [f"/crew/{cid}" for cid in data.characters]
     urls += [f"/item/{iid}" for iid in data.items]
     body = "".join(f"<url><loc>{base}{u}</loc></url>" for u in urls)
