@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Tournament divisions — PSS Companion{% endblock %}
+{% block description %}Pixel Starships tournament divisions: live standings by stars and the reward tiers for each placement.{% endblock %}
+{% block content %}
+<h1>🏆 Tournament divisions</h1>
+{% if tournament %}<p class="tournament {% if tournament.live %}live{% endif %}">{{ tournament.label }}</p>{% endif %}
+<p class="muted">Fleets are seeded into divisions by monthly rank; during finals they battle
+for stars within their division. Standings refresh every 5 minutes.</p>
+
+{% for d in divisions %}
+<section class="block">
+  <h2>Division {{ d.letter }} <span class="muted">({{ d.band }})</span></h2>
+
+  {% if d.tiers %}
+  <p class="muted">Rewards:
+    {% for t in d.tiers %}<strong>#{{ loop.index }}</strong> {{ t }}{% if not loop.last %} · {% endif %}{% endfor %}
+  </p>
+  {% endif %}
+
+  {% if d.fleets %}
+  <table>
+    <thead><tr><th>#</th><th>Fleet</th><th class="num">⭐ Stars</th><th class="num">Trophies</th><th class="num">Members</th></tr></thead>
+    <tbody>
+    {% for f in d.fleets %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td><a href="/fleet/{{ f.AllianceId }}">{{ sprite(f.AllianceSpriteId, 24, "") }} {{ f.AllianceName | clean }}</a></td>
+        <td class="num">{{ f.Score | num }}</td>
+        <td class="num">{{ f.Trophy | num }}</td>
+        <td class="num">{{ f.NumberOfMembers }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">No fleets seeded yet.</p>
+  {% endif %}
+</section>
+{% endfor %}
+{% endblock %}

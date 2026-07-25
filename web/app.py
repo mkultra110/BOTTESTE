@@ -476,6 +476,51 @@ async def achievements_page(request: Request, type: str = "", hidden: str = ""):
                   total=len(shown), hidden_count=hidden_count)
 
 
+# --- tournament divisions ------------------------------------------------------
+def _parse_reward_tiers(raw: str | None) -> list[str]:
+    """RewardStrings is comma-separated per placement, each like
+    'starbux:100000|points:10000' -> ['100,000 Starbux + 10,000 pts', ...]."""
+    if not raw:
+        return []
+    tiers = []
+    for tier in raw.split(","):
+        parts = []
+        for chunk in tier.split("|"):
+            kind, _, amount = chunk.partition(":")
+            label = {"starbux": "Starbux", "points": "pts"}.get(kind, kind)
+            parts.append(f"{num(amount)} {label}")
+        tiers.append(" + ".join(parts))
+    return tiers
+
+
+@app.get("/divisions", response_class=HTMLResponse)
+async def divisions_page(request: Request):
+    try:
+        designs = await cached("divisions", 86400, api.list_division_designs)
+        standings = await cached("divstandings", 300, api.list_alliances_with_division)
+    except PSSApiError:
+        designs, standings = [], []
+    by_div: dict[str, list[dict]] = {}
+    for a in standings:
+        by_div.setdefault(a.get("DivisionDesignId", ""), []).append(a)
+    for fleets in by_div.values():
+        fleets.sort(key=lambda a: -int(a.get("Score", 0) or 0))
+    letters = {"1": "A", "2": "B", "3": "C", "4": "D"}
+    divisions = []
+    for d in designs:
+        if d.get("DivisionType") != "Fleet":
+            continue
+        did = d.get("DivisionDesignId", "")
+        divisions.append({
+            "letter": letters.get(did, did),
+            "band": f"ranks {d.get('MinRank')}–{d.get('MaxRank')}",
+            "tiers": _parse_reward_tiers(d.get("RewardStrings")),
+            "fleets": by_div.get(did, []),
+        })
+    return render(request, "divisions.html", divisions=divisions,
+                  tournament=tournament_info())
+
+
 # --- events (situations) -----------------------------------------------------
 def _parse_change(raw: str | None) -> dict | None:
     """Parse a situation ChangeArgumentString like 'item:713x1' or
@@ -969,7 +1014,7 @@ async def sitemap(request: Request):
     await data.ensure_loaded()
     base = str(request.base_url).rstrip("/")
     urls = ["/", "/crew", "/items", "/rooms", "/ships", "/collections",
-            "/fleets", "/players", "/planner", "/recruit", "/achievements", "/galaxy", "/events"]
+            "/fleets", "/players", "/planner", "/recruit", "/achievements", "/galaxy", "/events", "/divisions"]
     urls += [f"/crew/{cid}" for cid in data.characters]
     urls += [f"/item/{iid}" for iid in data.items]
     body = "".join(f"<url><loc>{base}{u}</loc></url>" for u in urls)

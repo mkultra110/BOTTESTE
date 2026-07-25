@@ -221,6 +221,16 @@ class PSSApi:
         )
         return [s.attrib for s in root.iter("ShipDesign")]
 
+    async def list_division_designs(self) -> list[dict[str, str]]:
+        root = await self._get(
+            "DivisionService/ListAllDivisionDesigns2", {"languageKey": self.language}
+        )
+        return [d.attrib for d in root.iter("DivisionDesign")]
+
+    async def list_alliances_with_division(self) -> list[dict[str, str]]:
+        root = await self._get("AllianceService/ListAlliancesWithDivision")
+        return [a.attrib for a in root.iter("Alliance")]
+
     async def list_situation_designs(self) -> list[dict[str, str]]:
         root = await self._get(
             "SituationService/ListSituationDesigns", {"languageKey": self.language}
